@@ -1,0 +1,76 @@
+@model List<PlayerTransfer.Application.Dtos.PhienDangNhapDto>
+@{
+    ViewData["Title"] = "Thiết bị đang đăng nhập";
+
+    string TenThietBi(string userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent)) return "Không rõ thiết bị";
+
+        var he = userAgent.Contains("Windows") ? "Windows"
+            : userAgent.Contains("Android") ? "Android"
+            : userAgent.Contains("iPhone") || userAgent.Contains("iPad") ? "iOS"
+            : userAgent.Contains("Mac OS") ? "macOS"
+            : userAgent.Contains("Linux") ? "Linux" : "Khác";
+
+        var trinhDuyet = userAgent.Contains("Edg/") ? "Edge"
+            : userAgent.Contains("OPR/") ? "Opera"
+            : userAgent.Contains("Firefox") ? "Firefox"
+            : userAgent.Contains("Chrome") ? "Chrome"
+            : userAgent.Contains("Safari") ? "Safari" : "Trình duyệt khác";
+
+        return $"{trinhDuyet} trên {he}";
+    }
+}
+
+<div class="khung-hep">
+    <div class="khoi-dau">
+        <h1>Thiết bị đang đăng nhập</h1>
+        <span class="nhan">@Model.Count phiên</span>
+    </div>
+    <p class="mo">
+        Mỗi lần đăng nhập tạo một phiên riêng. Nếu thấy phiên lạ, hãy đăng xuất khỏi mọi
+        thiết bị rồi đổi mật khẩu ngay.
+    </p>
+
+    @if (ViewBag.Loi != null)
+    {
+        <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+    }
+
+    <div class="khoi">
+        @if (Model.Count == 0)
+        {
+            <div class="rong">
+                <div class="rong-bieu-tuong">🔒</div>
+                <p class="mo">Không có phiên nào đang hoạt động.</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var p in Model)
+            {
+                <div class="dong-meta" style="justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--vien)">
+                    <div>
+                        <strong>@TenThietBi(p.ThietBi)</strong>
+                        @if (p.LaPhienHienTai)
+                        {
+                            <span class="nhan nhan-tot" style="margin-left:6px">Thiết bị này</span>
+                        }
+                        <div class="mo" style="font-size:.85rem;margin-top:3px">
+                            IP @(string.IsNullOrWhiteSpace(p.DiaChiIp) ? "không rõ" : p.DiaChiIp)
+                            · đăng nhập @DinhDangSo.NgayGioVN(p.ThoiDiemDangNhap)
+                            · hết hạn @DinhDangSo.NgayGioVN(p.ThoiDiemHetHan)
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+
+        <form asp-action="DangXuatTatCa" method="post" class="the-nut" style="margin-top:16px"
+              data-xac-nhan="Đăng xuất khỏi mọi thiết bị, kể cả thiết bị này?">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="nut nut-do">Đăng xuất khỏi mọi thiết bị</button>
+            <a asp-action="DoiMatKhau" class="nut nut-nhe">Đổi mật khẩu</a>
+        </form>
+    </div>
+</div>

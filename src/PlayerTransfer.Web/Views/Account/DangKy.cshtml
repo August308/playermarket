@@ -1,0 +1,48 @@
+@model DangKyDto
+@{ ViewData["Title"] = "Đăng ký"; }
+
+<div class="khoi form-khung">
+    <h1 style="margin-top:0">Tạo tài khoản</h1>
+
+    <form method="post" asp-controller="Account" asp-action="DangKy">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="bao bao-loi" style="display:@(ViewData.ModelState.IsValid ? "none" : "block")"></div>
+
+        <div class="truong">
+            <label asp-for="HoTen">Họ tên</label>
+            <input class="o-nhap" asp-for="HoTen" />
+            <span asp-validation-for="HoTen" class="loi-truong"></span>
+        </div>
+
+        <div class="truong">
+            <label asp-for="Email">Email</label>
+            <input class="o-nhap" asp-for="Email" type="email" />
+            <span asp-validation-for="Email" class="loi-truong"></span>
+        </div>
+
+        <div class="truong">
+            <label asp-for="MatKhau">Mật khẩu</label>
+            <input class="o-nhap" asp-for="MatKhau" type="password" />
+            <span asp-validation-for="MatKhau" class="loi-truong"></span>
+        </div>
+
+        <div class="truong">
+            <label asp-for="NhapLaiMatKhau">Nhập lại mật khẩu</label>
+            <input class="o-nhap" asp-for="NhapLaiMatKhau" type="password" />
+            <span asp-validation-for="NhapLaiMatKhau" class="loi-truong"></span>
+        </div>
+
+        <div class="truong">
+            <label style="font-weight:400">
+                <input asp-for="DongYDieuKhoan" type="checkbox" /> Tôi đồng ý với điều khoản sử dụng
+            </label>
+            <span asp-validation-for="DongYDieuKhoan" class="loi-truong"></span>
+        </div>
+
+        <button type="submit" class="nut nut-chinh" style="width:100%">Tạo tài khoản</button>
+    </form>
+
+    <p class="mo" style="margin-bottom:0">
+        Đã có tài khoản? <a asp-controller="Account" asp-action="DangNhap">Đăng nhập</a>
+    </p>
+</div>

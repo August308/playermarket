@@ -1,0 +1,110 @@
+@model TuyenTrachVm
+@{
+    ViewData["Title"] = "Chế độ tuyển trạch";
+    var tc = Model.TieuChi;
+}
+
+<div style="margin:22px 0 18px">
+    <h1>Chế độ tuyển trạch</h1>
+    <p class="phu" style="margin:4px 0 0">
+        Nhập ngân sách và tiêu chí, hệ thống chấm điểm phù hợp cho từng cầu thủ dựa trên chất lượng,
+        mức giá so với ngân sách, độ tuổi và tình trạng hợp đồng.
+    </p>
+</div>
+
+<div class="bo-cuc">
+    <form class="khoi cot-loc" method="get" asp-controller="Scouting" asp-action="Index">
+        <input type="hidden" name="daTim" value="1" />
+
+        <div class="khoi-dau" style="margin-bottom:6px"><h3>Tiêu chí</h3></div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Ngân sách tối đa</div>
+            <div class="truot-gia-tri" id="nhanNganSach">@DinhDangSo.TrieuEuro(tc.NganSach)</div>
+            <input class="o-nhap" type="range" name="NganSach" min="1" max="250" step="1"
+                   value="@tc.NganSach" oninput="document.getElementById('nhanNganSach').textContent = PMGia(this.value)" />
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Vị trí cần tuyển</div>
+            <div class="chips">
+                @foreach (var v in Model.ViTris)
+                {
+                    var chon = tc.MaViTris.Contains(v.Ma);
+                    <label class="chip @(chon ? "chon" : "")" title="@v.Ten">
+                        <input type="checkbox" name="MaViTris" value="@v.Ma" checked="@chon" hidden
+                               onchange="this.closest('.chip').classList.toggle('chon', this.checked)" />
+                        @v.ThongTinThem
+                    </label>
+                }
+            </div>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Giải đấu</div>
+            <div class="chips">
+                @foreach (var g in Model.GiaiDaus)
+                {
+                    var chon = tc.MaGiaiDaus.Contains(g.Ma);
+                    <label class="chip @(chon ? "chon" : "")">
+                        <input type="checkbox" name="MaGiaiDaus" value="@g.Ma" checked="@chon" hidden
+                               onchange="this.closest('.chip').classList.toggle('chon', this.checked)" />
+                        @g.Ten
+                    </label>
+                }
+            </div>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Tuổi tối đa</div>
+            <input class="o-nhap" type="number" name="TuoiToiDa" min="16" max="45" placeholder="Không giới hạn"
+                   value="@tc.TuoiToiDa" />
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Chỉ số tối thiểu</div>
+            <input class="o-nhap" type="number" name="ChiSoToiThieu" min="40" max="99" placeholder="Không giới hạn"
+                   value="@tc.ChiSoToiThieu" />
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Ưu tiên</div>
+            <label class="chuyen">
+                <input type="checkbox" name="UuTienSapHetHopDong" value="true" checked="@tc.UuTienSapHetHopDong" />
+                Cộng điểm cho cầu thủ sắp hết hợp đồng
+            </label>
+            <label class="chuyen">
+                <input type="checkbox" name="ChiCauThuKhongChanThuong" value="true" checked="@tc.ChiCauThuKhongChanThuong" />
+                Loại cầu thủ đang chấn thương
+                <span class="mo" style="display:block;font-size:12px">Chỉ áp dụng cho cầu thủ đã có dữ liệu chấn thương</span>
+            </label>
+        </div>
+
+        <button type="submit" class="nut nut-chinh" style="width:100%">🔭 Tìm mục tiêu</button>
+    </form>
+
+    <div>
+        @if (Model.ThongBao != null)
+        {
+            <div class="bao bao-loi"><span>!</span><span>@Model.ThongBao</span></div>
+        }
+
+        @if (Model.DaTim)
+        {
+            @await Html.PartialAsync("_DanhSachMucTieu", Model.MucTieus)
+        }
+        else
+        {
+            <div class="khoi rong">
+                <div class="rong-bieu-tuong">🔭</div>
+                <h3 style="margin-bottom:6px">Bắt đầu tìm mục tiêu chuyển nhượng</h3>
+                <p class="phu">Chọn ngân sách và vị trí cần tuyển ở bảng bên trái, rồi bấm "Tìm mục tiêu".</p>
+                <p class="mo" style="margin-top:14px">
+                    Công thức điểm phù hợp: 60% chất lượng (chỉ số tổng hợp) ·
+                    25% mức giá so với ngân sách · 15% tiềm năng theo độ tuổi ·
+                    cộng thêm cho cầu thủ tự do hoặc sắp hết hợp đồng.
+                </p>
+            </div>
+        }
+    </div>
+</div>

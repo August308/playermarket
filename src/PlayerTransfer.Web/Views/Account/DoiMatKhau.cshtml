@@ -1,0 +1,30 @@
+@model DoiMatKhauDto
+@{ ViewData["Title"] = "Đổi mật khẩu"; }
+
+<div class="khoi form-khung">
+    <h1 style="margin-top:0">Đổi mật khẩu</h1>
+
+    <form method="post" asp-controller="Account" asp-action="DoiMatKhau">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="bao bao-loi" style="display:@(ViewData.ModelState.IsValid ? "none" : "block")"></div>
+
+        <div class="truong">
+            <label asp-for="MatKhauCu">Mật khẩu hiện tại</label>
+            <input class="o-nhap" asp-for="MatKhauCu" type="password" />
+        </div>
+
+        <div class="truong">
+            <label asp-for="MatKhauMoi">Mật khẩu mới</label>
+            <input class="o-nhap" asp-for="MatKhauMoi" type="password" />
+            <span asp-validation-for="MatKhauMoi" class="loi-truong"></span>
+        </div>
+
+        <div class="truong">
+            <label asp-for="NhapLaiMatKhauMoi">Nhập lại mật khẩu mới</label>
+            <input class="o-nhap" asp-for="NhapLaiMatKhauMoi" type="password" />
+            <span asp-validation-for="NhapLaiMatKhauMoi" class="loi-truong"></span>
+        </div>
+
+        <button type="submit" class="nut nut-chinh" style="width:100%">Cập nhật</button>
+    </form>
+</div>

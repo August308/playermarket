@@ -1,0 +1,17 @@
+@{ var soThe = ViewData["SoThe"] as int? ?? 8; }
+<div class="khung-xuong" aria-hidden="true">
+    @for (var i = 0; i < soThe; i++)
+    {
+        <div class="xuong-the">
+            <div style="display:flex;gap:12px">
+                <div class="xuong xuong-tron"></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                    <div class="xuong xuong-dong"></div>
+                    <div class="xuong xuong-dong ngan"></div>
+                </div>
+            </div>
+            <div class="xuong xuong-dong" style="height:20px;width:60%;margin-top:auto"></div>
+            <div class="xuong xuong-dong" style="height:31px"></div>
+        </div>
+    }
+</div>

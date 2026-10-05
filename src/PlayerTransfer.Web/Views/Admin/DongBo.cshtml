@@ -1,0 +1,75 @@
+@model List<System.Text.Json.JsonElement>
+@{
+    ViewData["Title"] = "Đồng bộ dữ liệu";
+
+    // Trạng thái lưu dạng mã; hiển thị bằng nhãn tiếng Việt kèm màu để đọc nhanh.
+    (string Nhan, string Lop) TrangThai(string ma) => ma switch
+    {
+        "ThanhCong" => ("Thành công", "nhan-tot"),
+        "MotPhan" => ("Một phần", "nhan-canh-bao"),
+        "HetHanMuc" => ("Hết hạn mức", "nhan-canh-bao"),
+        "ThatBai" => ("Thất bại", "nhan-loi"),
+        "BiGianDoan" => ("Bị gián đoạn", "nhan-loi"),
+        "BoQua" => ("Bỏ qua", ""),
+        "DangChay" => ("Đang chạy", ""),
+        _ => (ma, "")
+    };
+
+    string Chuoi(System.Text.Json.JsonElement e, string ten) =>
+        e.TryGetProperty(ten, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : null;
+}
+
+<h1>Đồng bộ dữ liệu từ API bóng đá</h1>
+
+<div class="khoi">
+    <div class="khoi-dau">
+        <h3>Chạy đồng bộ thủ công</h3>
+        <span class="nhan">Gói miễn phí giới hạn 100 lượt gọi mỗi ngày</span>
+    </div>
+
+    <form asp-controller="Admin" asp-action="ChayDongBo" method="post" style="display:flex; gap:8px">
+        <input class="o-nhap" name="phamVi" placeholder="Phạm vi (ví dụ: Premier League)" value="Toàn bộ" style="flex:1" />
+        <button type="submit" class="nut nut-chinh">Đồng bộ ngay</button>
+    </form>
+
+    <p class="mo" style="margin-bottom:0">
+        Nếu chưa cấu hình <code>FootballApi:Key</code> trong <code>appsettings.json</code> của dự án API,
+        hệ thống sẽ bỏ qua và tiếp tục dùng dữ liệu mẫu.
+    </p>
+</div>
+
+<div class="khoi">
+    <div class="khoi-dau"><h3>Nhật ký đồng bộ</h3></div>
+    @if (Model.Any())
+    {
+        <div class="bang-bao">
+        <table>
+            <thead>
+            <tr><th>Bắt đầu</th><th>Phạm vi</th><th>Trạng thái</th>
+                <th class="so">Thêm mới</th><th class="so">Cập nhật</th><th class="so">Lỗi</th>
+                <th class="so">Lượt gọi</th><th>Thông điệp</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var nk in Model)
+            {
+                <tr>
+                    @{ var tt = TrangThai(Chuoi(nk, "trangThai")); }
+                    <td>@DinhDangSo.NgayGioVN(nk.GetProperty("thoiDiemBatDau").GetDateTime())</td>
+                    <td>@Chuoi(nk, "phamVi")</td>
+                    <td><span class="nhan @tt.Lop">@tt.Nhan</span></td>
+                    <td class="so">@nk.GetProperty("soBanGhiThemMoi").GetInt32()</td>
+                    <td class="so">@nk.GetProperty("soBanGhiCapNhat").GetInt32()</td>
+                    <td class="so">@nk.GetProperty("soBanGhiLoi").GetInt32()</td>
+                    <td class="so">@nk.GetProperty("soLuotGoiApi").GetInt32()</td>
+                    <td style="font-size:13px;max-width:420px">@Chuoi(nk, "thongDiep")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+        </div>
+    }
+    else
+    {
+        <div class="rong">Chưa có lần đồng bộ nào được ghi nhận.</div>
+    }
+</div>

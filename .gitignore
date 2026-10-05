@@ -1,0 +1,17 @@
+bin/
+obj/
+.vs/
+*.user
+*.db
+*.db-shm
+*.db-wal
+appsettings.Production.json
+logs/
+appsettings.Development.json
+
+# E10 — biến môi trường Docker
+.env
+logs/
+
+# Khóa Data Protection của dự án Web (sinh tự động, không đưa lên Git)
+keys/

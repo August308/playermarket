@@ -1,0 +1,98 @@
+@model PlayerTransfer.Application.Dtos.CoCauTuoiDto
+@{
+    ViewData["Title"] = "Cơ cấu độ tuổi " + Model.TenCLB;
+    var soLonNhat = Model.ThapTuoi.Count == 0 ? 1 : Math.Max(1, Model.ThapTuoi.Max(x => x.SoCauThu));
+}
+
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:22px 0 18px">
+    <div>
+        <h1>Cơ cấu độ tuổi — @Model.TenCLB</h1>
+        <p class="phu" style="margin:4px 0 0">
+            Tháp tuổi đội hình, rủi ro già hóa và danh sách hợp đồng sắp đáo hạn.
+        </p>
+    </div>
+    <a class="nut nut-nhe" asp-action="CauLacBo" asp-route-id="@Model.MaCLB">Cân đối chuyển nhượng</a>
+</div>
+
+@if (ViewBag.Loi != null)
+{
+    <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+}
+
+@if (Model.SoCauThu > 0)
+{
+    <div class="khoi hien-dan">
+        <div class="khoi-dau"><h3>Tổng quan</h3></div>
+        <div class="luoi-tin">
+            <div class="o-tin"><div class="nhan-o">Cầu thủ</div><div class="gia-o">@Model.SoCauThu</div></div>
+            <div class="o-tin"><div class="nhan-o">Tuổi trung bình</div><div class="gia-o">@DinhDangSo.So(Model.TuoiTrungBinh, 1)</div></div>
+            <div class="o-tin">
+                <div class="nhan-o">Tuổi TB theo phút</div>
+                <div class="gia-o">@DinhDangSo.So(Model.TuoiTrungBinhTheoPhut, 1)</div>
+            </div>
+        </div>
+
+        <div class="bao @(Model.CanhBao.StartsWith("Cơ cấu") ? "bao-ok" : "")" style="margin-top:14px">
+            <span>@(Model.CanhBao.StartsWith("Cơ cấu") ? "✓" : "!")</span>
+            <span>@Model.CanhBao</span>
+        </div>
+
+        <p class="mo" style="font-size:.85rem;margin-top:10px;line-height:1.6">
+            «Tuổi trung bình theo phút» tính có trọng số theo số phút thi đấu, nên phản ánh
+            đội hình thực sự ra sân — khác với tuổi trung bình của cả danh sách đăng ký.
+            Chênh lệch lớn nghĩa là đội đang dựa vào nhóm cầu thủ lớn tuổi.
+        </p>
+    </div>
+
+    <div class="khoi hien-dan">
+        <div class="khoi-dau"><h3>Tháp tuổi</h3></div>
+        @foreach (var b in Model.ThapTuoi)
+        {
+            var rong = 100.0 * b.SoCauThu / soLonNhat;
+            <div class="thanh-cs">
+                <div class="dau-cs">
+                    <span>@b.Nhan</span>
+                    <strong>@b.SoCauThu cầu thủ · @DinhDangSo.TrieuEuro(b.TongGiaTri)</strong>
+                </div>
+                <div class="thanh-nen">
+                    <div class="thanh-day" style="width:@rong.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)%"></div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.TruCotLonTuoi.Count > 0)
+    {
+        <div class="khoi">
+            <div class="khoi-dau">
+                <h3>Trụ cột từ 30 tuổi</h3>
+                <span class="nhan nhan-canh-bao">@Model.TruCotLonTuoi.Count cầu thủ</span>
+            </div>
+            <p class="mo" style="margin:-4px 0 10px;font-size:.85rem">
+                Thi đấu nhiều (từ 900 phút) và giá trị cao — cần tính phương án kế cận.
+            </p>
+            <div class="luoi">
+                @foreach (var ct in Model.TruCotLonTuoi)
+                {
+                    @await Html.PartialAsync("_CauThuCard", ct)
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.SapHetHopDong.Count > 0)
+    {
+        <div class="khoi">
+            <div class="khoi-dau">
+                <h3>Sắp hết hợp đồng trong 1 năm</h3>
+                <span class="nhan nhan-canh-bao">@Model.SapHetHopDong.Count cầu thủ</span>
+            </div>
+            <div class="luoi">
+                @foreach (var ct in Model.SapHetHopDong)
+                {
+                    @await Html.PartialAsync("_CauThuCard", ct)
+                }
+            </div>
+        </div>
+    }
+}

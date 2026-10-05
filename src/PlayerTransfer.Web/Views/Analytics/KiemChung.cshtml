@@ -1,0 +1,101 @@
+@model PlayerTransfer.Application.Dtos.BaoCaoKiemChungDto
+@{
+    ViewData["Title"] = "Kiểm chứng dữ liệu";
+
+    string MauMuc(string mucDo) => mucDo switch
+    {
+        "Loi" => "var(--do)",
+        "CanhBao" => "var(--vang)",
+        _ => "var(--tot)"
+    };
+}
+
+<div style="margin:22px 0 18px">
+    <h1>Kiểm chứng chất lượng dữ liệu</h1>
+    <p class="phu" style="margin:4px 0 0">
+        Mỗi phép kiểm tra ứng với một lỗi đã từng xảy ra trong dự án. Chạy lại sau mỗi lần
+        nạp dữ liệu để phát hiện sớm thay vì chờ nhìn thấy số liệu lạ trên giao diện.
+    </p>
+</div>
+
+@if (ViewBag.Loi != null)
+{
+    <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+}
+
+<div class="khoi hien-dan">
+    <div class="khoi-dau">
+        <h3>Quy mô dữ liệu</h3>
+        <span class="mo">@DinhDangSo.NgayGioVN(Model.ThoiDiem)</span>
+    </div>
+    <div class="luoi-tin">
+        <div class="o-tin"><div class="nhan-o">Cầu thủ</div><div class="gia-o">@DinhDangSo.So(Model.TongCauThu)</div></div>
+        <div class="o-tin"><div class="nhan-o">Câu lạc bộ</div><div class="gia-o">@DinhDangSo.So(Model.TongCauLacBo)</div></div>
+        <div class="o-tin"><div class="nhan-o">Giải đấu</div><div class="gia-o">@DinhDangSo.So(Model.TongGiaiDau)</div></div>
+        <div class="o-tin"><div class="nhan-o">Mốc giá</div><div class="gia-o">@DinhDangSo.So(Model.TongMocGia)</div></div>
+        <div class="o-tin"><div class="nhan-o">Thương vụ</div><div class="gia-o">@DinhDangSo.So(Model.TongThuongVu)</div></div>
+    </div>
+
+    <div class="luoi-hai-cot" style="margin-top:14px">
+        <div>
+            <h4 style="margin:0 0 6px">Theo nguồn dữ liệu</h4>
+            @foreach (var c in Model.TheoNguonDuLieu.OrderByDescending(x => x.Value))
+            {
+                <div class="dong-meta" style="justify-content:space-between;padding:4px 0">
+                    <span>@c.Key</span><strong>@DinhDangSo.So(c.Value)</strong>
+                </div>
+            }
+        </div>
+        <div>
+            <h4 style="margin:0 0 6px">Theo nguồn chỉ số</h4>
+            @foreach (var c in Model.TheoNguonChiSo.OrderByDescending(x => x.Value))
+            {
+                <div class="dong-meta" style="justify-content:space-between;padding:4px 0">
+                    <span>@c.Key</span><strong>@DinhDangSo.So(c.Value)</strong>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="bao @(Model.TatCaDat ? "bao-ok" : "bao-loi")" style="margin:14px 0">
+    <span>@(Model.TatCaDat ? "✓" : "!")</span>
+    <span>
+        @if (Model.TatCaDat)
+        {
+            <text>Tất cả @Model.CacMuc.Count phép kiểm tra đều đạt.</text>
+        }
+        else
+        {
+            <text>@Model.SoMucLoi mục lỗi và @Model.SoMucCanhBao mục cảnh báo trên tổng số @Model.CacMuc.Count phép kiểm tra.</text>
+        }
+    </span>
+</div>
+
+@foreach (var m in Model.CacMuc.OrderByDescending(x => x.MucDo == "Loi").ThenByDescending(x => x.MucDo == "CanhBao"))
+{
+    <div class="khoi" style="border-left:4px solid @MauMuc(m.MucDo)">
+        <div class="khoi-dau">
+            <h3 style="font-size:1rem">@m.TenKiemTra</h3>
+            <span class="nhan" style="background:@MauMuc(m.MucDo);color:#fff">
+                @(m.Dat ? "Đạt" : DinhDangSo.So(m.SoBanGhiLoi) + " bản ghi")
+            </span>
+        </div>
+
+        <p class="mo" style="margin:0 0 8px;line-height:1.6">@m.MoTa</p>
+
+        @if (!m.Dat)
+        {
+            <p class="mo" style="margin:0 0 6px">
+                Chiếm @DinhDangSo.So(m.TyLeLoi, 2)% trên @DinhDangSo.So(m.TongBanGhi) bản ghi.
+            </p>
+
+            @if (m.ViDu.Count > 0)
+            {
+                <p class="mo" style="margin:0 0 6px">Ví dụ: @string.Join(", ", m.ViDu)</p>
+            }
+
+            <p style="margin:0"><strong>Xử lý:</strong> @m.GoiYXuLy</p>
+        }
+    </div>
+}

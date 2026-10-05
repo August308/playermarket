@@ -1,0 +1,187 @@
+@model QuanTriCauThuVm
+@{ ViewData["Title"] = "Quản trị cầu thủ"; }
+
+<h1>Quản trị dữ liệu cầu thủ</h1>
+
+@{
+    var ds = Model.DangSua;
+    var dangSua = ds?.MaCauThu != null;
+    var trangHienTai = (int?)ViewBag.Trang ?? 1;
+    string Chon(bool dung) => dung ? "selected" : null;
+}
+
+<div class="khoi" id="bieuMauCauThu">
+    <div class="khoi-dau">
+        <h3>@(dangSua ? $"Sửa cầu thủ: {ds.HoTen}" : "Thêm cầu thủ thủ công")</h3>
+        <span class="nhan">Bản ghi nhập tay sẽ không bị đồng bộ tự động ghi đè</span>
+    </div>
+
+    <form method="post" asp-controller="Admin" asp-action="LuuCauThu" class="luoi-bieu-mau">
+        @if (dangSua)
+        {
+            <input type="hidden" name="MaCauThu" value="@ds.MaCauThu" />
+        }
+        <div class="truong">
+            <label for="qtHoTen">Họ tên</label>
+            <input class="o-nhap" id="qtHoTen" name="HoTen" required maxlength="100" value="@ds.HoTen" />
+        </div>
+        <div class="truong">
+            <label for="qtNgaySinh">Ngày sinh</label>
+            <input class="o-nhap" id="qtNgaySinh" type="date" name="NgaySinh" required value="@ds.NgaySinh.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="truong">
+            <label for="qtQuocGia">Quốc tịch</label>
+            <select class="o-nhap" id="qtQuocGia" name="MaQuocGia" required>
+                @if (!dangSua)
+                {
+                    <option value="" selected disabled>— Chọn quốc tịch —</option>
+                }
+                @foreach (var q in Model.QuocGias)
+                {
+                    <option value="@q.Ma" selected="@Chon(dangSua && q.Ma == ds.MaQuocGia)">@q.Ten</option>
+                }
+            </select>
+        </div>
+        <div class="truong">
+            <label for="qtCLB">Câu lạc bộ</label>
+            <select class="o-nhap" id="qtCLB" name="MaCLB">
+                <option value="">Tự do</option>
+                @foreach (var c in Model.CauLacBos)
+                {
+                    <option value="@c.Ma" selected="@Chon(c.Ma == ds.MaCLB)">@c.Ten</option>
+                }
+            </select>
+        </div>
+        <div class="truong">
+            <label for="qtViTri">Vị trí</label>
+            <select class="o-nhap" id="qtViTri" name="MaViTri" required>
+                @foreach (var v in Model.ViTris)
+                {
+                    <option value="@v.Ma" selected="@Chon(v.Ma == ds.MaViTri)">@v.ThongTinThem — @v.Ten</option>
+                }
+            </select>
+        </div>
+        <div class="truong">
+            <label for="qtGiaTri">Giá trị (triệu €)</label>
+            <input class="o-nhap" id="qtGiaTri" type="number" step="0.01" min="0" name="GiaTriHienTai" required
+                   value="@ds.GiaTriHienTai.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" />
+        </div>
+        <div class="truong">
+            <label for="qtChieuCao">Chiều cao (cm)</label>
+            <input class="o-nhap" id="qtChieuCao" type="number" name="ChieuCao" min="150" max="215" value="@ds.ChieuCao" />
+        </div>
+        <div class="truong">
+            <label for="qtCanNang">Cân nặng (kg)</label>
+            <input class="o-nhap" id="qtCanNang" type="number" name="CanNang" min="50" max="120" value="@ds.CanNang" />
+        </div>
+        <div class="truong">
+            <label for="qtChan">Chân thuận</label>
+            <select class="o-nhap" id="qtChan" name="ChanThuan">
+                <option value="Phai" selected="@Chon(ds.ChanThuan == "Phai")">Phải</option>
+                <option value="Trai" selected="@Chon(ds.ChanThuan == "Trai")">Trái</option>
+                <option value="CaHai" selected="@Chon(ds.ChanThuan == "CaHai")">Cả hai</option>
+            </select>
+        </div>
+        <div class="truong">
+            <label for="qtSoAo">Số áo</label>
+            <input class="o-nhap" id="qtSoAo" type="number" name="SoAo" min="1" max="99" value="@ds.SoAo" />
+        </div>
+        <div class="truong">
+            <label for="qtHopDong">Hạn hợp đồng</label>
+            <input class="o-nhap" id="qtHopDong" type="date" name="NgayHetHanHopDong" value="@ds.NgayHetHanHopDong?.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="truong nut-bieu-mau">
+            <button type="submit" class="nut nut-chinh">@(dangSua ? "Lưu thay đổi" : "Thêm cầu thủ")</button>
+            @if (dangSua)
+            {
+                <a class="nut" asp-controller="Admin" asp-action="CauThu" asp-route-tuKhoa="@Model.TuKhoa" asp-route-trang="@trangHienTai">Hủy</a>
+            }
+        </div>
+    </form>
+</div>
+
+<div class="khoi">
+    <div class="khoi-dau">
+        <h3>Danh sách cầu thủ (@Model.KetQua.TongSo)</h3>
+        <form method="get" asp-controller="Admin" asp-action="CauThu" style="display:flex; gap:6px">
+            <input class="o-nhap" name="tuKhoa" value="@Model.TuKhoa" placeholder="Tìm theo tên" aria-label="Tìm theo tên" />
+            <button type="submit" class="nut nut-nho">Tìm</button>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+        <tr><th class="giua">Mã</th><th>Họ tên</th><th>Vị trí</th><th>CLB</th>
+            <th class="so">Giá trị (tr €)</th><th class="giua">Thao tác</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var ct in Model.KetQua.DanhSach)
+        {
+            <tr>
+                <td class="giua">@ct.MaCauThu</td>
+                <td><a asp-controller="Players" asp-action="ChiTiet" asp-route-id="@ct.MaCauThu">@ct.HoTen</a></td>
+                <td>@ct.ViTriVietTat</td>
+                <td>@ct.CauLacBo</td>
+                <td class="so">@DinhDangSo.SoGon(ct.GiaTriHienTai, 2)</td>
+                <td class="giua o-thao-tac">
+                    <a class="nut nut-nho" asp-controller="Admin" asp-action="CauThu" asp-route-tuKhoa="@Model.TuKhoa"
+                       asp-route-trang="@trangHienTai" asp-route-sua="@ct.MaCauThu" asp-fragment="bieuMauCauThu">Sửa</a>
+                    <form asp-controller="Admin" asp-action="XoaCauThu" method="post"
+                          data-xac-nhan="Xóa cầu thủ @ct.HoTen? Thao tác này không thể hoàn tác.">
+                        <input type="hidden" name="id" value="@ct.MaCauThu" />
+                        <button type="submit" class="nut nut-nho nut-do">Xóa</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    @if (Model.KetQua.TongSoTrang > 1)
+    {
+        // Cửa sổ 5 trang quanh trang hiện tại + trang đầu/cuối. Trước đây chỉ in 15 trang đầu
+        // nên với 143 trang thì không có cách nào tới được trang 16 trở đi.
+        var tong = Model.KetQua.TongSoTrang;
+        var dau = Math.Max(1, Model.KetQua.Trang - 2);
+        var cuoi = Math.Min(tong, dau + 4);
+        dau = Math.Max(1, cuoi - 4);
+
+        <nav class="phan-trang" aria-label="Phân trang">
+            @if (Model.KetQua.Trang > 1)
+            {
+                <a asp-controller="Admin" asp-action="CauThu" asp-route-tuKhoa="@Model.TuKhoa" asp-route-trang="@(Model.KetQua.Trang - 1)" aria-label="Trang trước">‹</a>
+            }
+            @if (dau > 1)
+            {
+                <a asp-controller="Admin" asp-action="CauThu" asp-route-tuKhoa="@Model.TuKhoa" asp-route-trang="1">1</a>
+                @if (dau > 2)
+                {
+                    <span class="cham">…</span>
+                }
+            }
+            @for (var i = dau; i <= cuoi; i++)
+            {
+                if (i == Model.KetQua.Trang)
+                {
+                    <span class="hien-tai" aria-current="page">@i</span>
+                }
+                else
+                {
+                    <a asp-controller="Admin" asp-action="CauThu" asp-route-tuKhoa="@Model.TuKhoa" asp-route-trang="@i">@i</a>
+                }
+            }
+            @if (cuoi < tong)
+            {
+                @if (cuoi < tong - 1)
+                {
+                    <span class="cham">…</span>
+                }
+                <a asp-controller="Admin" asp-action="CauThu" asp-route-tuKhoa="@Model.TuKhoa" asp-route-trang="@tong">@tong</a>
+            }
+            @if (Model.KetQua.Trang < tong)
+            {
+                <a asp-controller="Admin" asp-action="CauThu" asp-route-tuKhoa="@Model.TuKhoa" asp-route-trang="@(Model.KetQua.Trang + 1)" aria-label="Trang sau">›</a>
+            }
+        </nav>
+    }
+</div>

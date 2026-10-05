@@ -1,0 +1,103 @@
+@model PlayerTransfer.Application.Dtos.CanDoiCauLacBoDto
+@{
+    ViewData["Title"] = Model.TenCLB;
+}
+
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:22px 0 18px">
+    <div>
+        <h1>@Model.TenCLB</h1>
+        <p class="phu" style="margin:4px 0 0">
+            @Model.GiaiDau @(string.IsNullOrWhiteSpace(Model.SanNha) ? "" : "· " + Model.SanNha)
+        </p>
+    </div>
+    <div class="the-nut">
+        <a class="nut nut-nhe" asp-action="CoCauTuoi" asp-route-id="@Model.MaCLB">Cơ cấu độ tuổi</a>
+        <a class="nut nut-nhe" asp-action="CauLacBo">← Bảng xếp hạng</a>
+    </div>
+</div>
+
+<div class="khoi hien-dan">
+    <div class="khoi-dau"><h3>Tổng quan</h3></div>
+    <div class="luoi-tin">
+        <div class="o-tin"><div class="nhan-o">Cầu thủ</div><div class="gia-o">@Model.SoCauThu</div></div>
+        <div class="o-tin"><div class="nhan-o">Giá trị đội hình</div><div class="gia-o">@DinhDangSo.TrieuEuro(Model.TongGiaTriDoiHinh)</div></div>
+        <div class="o-tin"><div class="nhan-o">Tuổi trung bình</div><div class="gia-o">@DinhDangSo.So(Model.TuoiTrungBinh, 1)</div></div>
+        <div class="o-tin"><div class="nhan-o">Sắp hết hợp đồng</div><div class="gia-o">@Model.SoCauThuSapHetHopDong</div></div>
+        <div class="o-tin"><div class="nhan-o">Tổng chi</div><div class="gia-o">@DinhDangSo.TrieuEuro(Model.TongChi)</div></div>
+        <div class="o-tin"><div class="nhan-o">Tổng thu</div><div class="gia-o">@DinhDangSo.TrieuEuro(Model.TongThu)</div></div>
+        <div class="o-tin">
+            <div class="nhan-o">Số dư</div>
+            <div class="gia-o @(Model.SoDu >= 0 ? "so-duong" : "so-am")">
+                @(Model.SoDu > 0 ? "+" : "")@DinhDangSo.TrieuEuro(Model.SoDu)
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.TheoMua.Count > 0)
+{
+    <div class="khoi hien-dan">
+        <div class="khoi-dau"><h3>Số dư theo mùa</h3></div>
+        <div class="khung-bieu-do"><canvas id="bieuDoMua"></canvas></div>
+    </div>
+}
+
+<div class="luoi-hai-cot">
+    <div class="khoi">
+        <div class="khoi-dau"><h3>Mua đắt nhất</h3></div>
+        @await Html.PartialAsync("_BangThuongVu", Model.MuaDatNhat)
+    </div>
+    <div class="khoi">
+        <div class="khoi-dau"><h3>Bán đắt nhất</h3></div>
+        @await Html.PartialAsync("_BangThuongVu", Model.BanDatNhat)
+    </div>
+</div>
+
+@if (Model.DoiHinhGiaTriNhat.Count > 0)
+{
+    <div class="khoi">
+        <div class="khoi-dau"><h3>Cầu thủ giá trị nhất</h3></div>
+        <div class="luoi">
+            @foreach (var ct in Model.DoiHinhGiaTriNhat)
+            {
+                @await Html.PartialAsync("_CauThuCard", ct)
+            }
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @if (Model.TheoMua.Count > 0)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+        <script>
+            (function () {
+                var d = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                    Model.TheoMua.Select(x => new { m = x.Nhan, sd = x.GiaTri, chi = x.GiaTriPhu })));
+                PMBieuDo('bieuDoMua', function () {
+                    return {
+                        type: 'bar',
+                        data: {
+                            labels: d.map(function (x) { return x.m; }),
+                            datasets: [
+                                {
+                                    label: 'Số dư (tr €)',
+                                    data: d.map(function (x) { return x.sd; }),
+                                    backgroundColor: d.map(function (x) {
+                                        return x.sd >= 0 ? PMMau('--tot', .8) : PMMau('--xau', .8);
+                                    })
+                                },
+                                {
+                                    label: 'Chi (tr €)',
+                                    data: d.map(function (x) { return x.chi; }),
+                                    backgroundColor: PMMau('--chinh', .35)
+                                }
+                            ]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    };
+                });
+            })();
+        </script>
+    }
+}

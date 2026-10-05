@@ -1,0 +1,199 @@
+@model PlayerTransfer.Application.Dtos.MangChuyenNhuongDto
+@{
+    ViewData["Title"] = "Mạng lưới chuyển nhượng";
+    var muaGiais = ViewBag.MuaGiais as List<string> ?? new List<string>();
+    var soCung = (int)(ViewBag.SoCung ?? 60);
+    var topNut = Model.CacNut.Take(24).ToList();
+}
+
+<div style="margin:22px 0 18px">
+    <h1>Mạng lưới chuyển nhượng</h1>
+    <p class="phu" style="margin:4px 0 0">
+        Mỗi đường nối là dòng tiền từ câu lạc bộ mua sang câu lạc bộ bán; đường càng đậm
+        thì tổng phí càng lớn. Nhìn ra ngay những tuyến giao dịch quen thuộc giữa các đội.
+    </p>
+</div>
+
+@if (ViewBag.Loi != null)
+{
+    <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+}
+
+<form method="get" class="khoi" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+    <div class="truong" style="flex:1;min-width:180px">
+        <label for="muaGiai">Mùa giải</label>
+        <select class="o-nhap" id="muaGiai" name="muaGiai">
+            <option value="">Tất cả các mùa</option>
+            @foreach (var m in muaGiais)
+            {
+                @* selected="False" vẫn là thuộc tính có mặt nên trình duyệt vẫn chọn;
+                   phải bỏ hẳn thuộc tính khi không khớp. *@
+                if (m == Model.MuaGiai)
+                {
+                    <option value="@m" selected>@m</option>
+                }
+                else
+                {
+                    <option value="@m">@m</option>
+                }
+            }
+        </select>
+    </div>
+    <div class="truong" style="flex:1;min-width:150px">
+        <label for="soCung">Số tuyến hiển thị</label>
+        <input class="o-nhap" type="number" min="5" max="200" id="soCung" name="soCung" value="@soCung" />
+    </div>
+    <button type="submit" class="nut nut-chinh">Xem</button>
+</form>
+
+@if (Model.CacCung.Count == 0)
+{
+    <div class="khoi rong">
+        <div class="rong-bieu-tuong">🕸️</div>
+        <p class="mo">Không có thương vụ có phí nào trong phạm vi đã chọn.</p>
+    </div>
+}
+else
+{
+    <div class="khoi hien-dan">
+        <div class="khoi-dau">
+            <h3>Sơ đồ</h3>
+            <span class="mo">@DinhDangSo.So(Model.TongThuongVu) thương vụ · @DinhDangSo.TrieuEuro(Model.TongPhi)</span>
+        </div>
+        <div style="overflow:auto">
+            <svg id="soDoMang" viewBox="0 0 760 760" style="width:100%;max-width:760px;height:auto;display:block;margin:0 auto"></svg>
+        </div>
+        <p class="mo" style="font-size:.85rem;margin-top:10px">
+            Chỉ vẽ @topNut.Count câu lạc bộ có tổng giao dịch lớn nhất để sơ đồ còn đọc được.
+            Di chuột lên đường nối để xem chi tiết.
+        </p>
+    </div>
+
+    <div class="khoi">
+        <div class="khoi-dau"><h3>Tuyến giao dịch lớn nhất</h3></div>
+        <table>
+            <thead>
+            <tr>
+                <th>Từ câu lạc bộ</th><th>Đến câu lạc bộ</th>
+                <th style="text-align:right">Thương vụ</th><th style="text-align:right">Tổng phí</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var c in Model.CacCung.Take(25))
+            {
+                <tr>
+                    <td><a asp-action="CauLacBo" asp-route-id="@c.MaCLBDi">@c.CLBDi</a></td>
+                    <td><a asp-action="CauLacBo" asp-route-id="@c.MaCLBDen">@c.CLBDen</a></td>
+                    <td style="text-align:right">@c.SoThuongVu</td>
+                    <td style="text-align:right;font-weight:600">@DinhDangSo.TrieuEuro(c.TongPhi)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="khoi">
+        <div class="khoi-dau"><h3>Câu lạc bộ giao dịch nhiều nhất</h3></div>
+        <table>
+            <thead>
+            <tr>
+                <th>Câu lạc bộ</th><th>Giải</th>
+                <th style="text-align:right">Mua</th><th style="text-align:right">Bán</th>
+                <th style="text-align:right">Chi</th><th style="text-align:right">Thu</th>
+                <th style="text-align:right">Số dư</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var n in Model.CacNut.Take(20))
+            {
+                var soDu = n.TienThu - n.TienChi;
+                <tr>
+                    <td><a asp-action="CauLacBo" asp-route-id="@n.MaCLB">@n.TenCLB</a></td>
+                    <td class="mo">@n.GiaiDau</td>
+                    <td style="text-align:right">@n.SoMua</td>
+                    <td style="text-align:right">@n.SoBan</td>
+                    <td style="text-align:right">@DinhDangSo.So(n.TienChi, 1)</td>
+                    <td style="text-align:right">@DinhDangSo.So(n.TienThu, 1)</td>
+                    <td class="@(soDu >= 0 ? "so-duong" : "so-am")" style="text-align:right">
+                        @soDu.ToString("+0.0;-0.0")
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    @if (Model.CacCung.Count > 0)
+    {
+        <script>
+            (function () {
+                var nut = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                    topNut.Select(x => new { id = x.MaCLB, ten = x.TenCLB })));
+                var cung = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                    Model.CacCung.Select(x => new { a = x.MaCLBDi, b = x.MaCLBDen, phi = x.TongPhi, so = x.SoThuongVu })));
+
+                var svg = document.getElementById('soDoMang');
+                if (!svg || nut.length === 0) return;
+
+                var NS = 'http://www.w3.org/2000/svg';
+                var tam = 380, banKinh = 280;
+                var viTri = {};
+
+                // Xếp các câu lạc bộ đều nhau trên một vòng tròn — bố cục xác định,
+                // không phụ thuộc thuật toán mô phỏng lực nên lần nào vẽ cũng giống nhau.
+                nut.forEach(function (n, i) {
+                    var goc = (2 * Math.PI * i) / nut.length - Math.PI / 2;
+                    viTri[n.id] = {
+                        x: tam + banKinh * Math.cos(goc),
+                        y: tam + banKinh * Math.sin(goc),
+                        goc: goc,
+                        ten: n.ten
+                    };
+                });
+
+                var phiMax = Math.max.apply(null, cung.map(function (c) { return c.phi; })) || 1;
+
+                function tao(ten, thuocTinh) {
+                    var e = document.createElementNS(NS, ten);
+                    for (var k in thuocTinh) e.setAttribute(k, thuocTinh[k]);
+                    return e;
+                }
+
+                cung.forEach(function (c) {
+                    var p = viTri[c.a], q = viTri[c.b];
+                    if (!p || !q) return;
+
+                    var doDam = 0.5 + 5 * (c.phi / phiMax);
+                    var duong = tao('path', {
+                        d: 'M' + p.x + ',' + p.y + ' Q' + tam + ',' + tam + ' ' + q.x + ',' + q.y,
+                        fill: 'none',
+                        stroke: PMMau('--chinh'),
+                        'stroke-opacity': 0.18 + 0.5 * (c.phi / phiMax),
+                        'stroke-width': doDam
+                    });
+                    duong.appendChild(tao('title', {})).textContent =
+                        p.ten + ' → ' + q.ten + ': ' + c.so + ' thương vụ, ' + PMGia(c.phi);
+                    svg.appendChild(duong);
+                });
+
+                nut.forEach(function (n) {
+                    var v = viTri[n.id];
+                    svg.appendChild(tao('circle', { cx: v.x, cy: v.y, r: 5, fill: PMMau('--chinh-dam') }));
+
+                    var ben = Math.cos(v.goc) >= 0;
+                    var chu = tao('text', {
+                        x: v.x + (ben ? 10 : -10),
+                        y: v.y + 4,
+                        'text-anchor': ben ? 'start' : 'end',
+                        'font-size': '11',
+                        fill: 'currentColor'
+                    });
+                    chu.textContent = n.ten.length > 18 ? n.ten.slice(0, 17) + '…' : n.ten;
+                    svg.appendChild(chu);
+                });
+            })();
+        </script>
+    }
+}

@@ -1,0 +1,201 @@
+@model TrangChuVm
+@{
+    ViewData["Title"] = "Trang chủ";
+    var daDangNhap = !string.IsNullOrEmpty(Context.Session.GetString("AccessToken"));
+}
+
+@if (ViewBag.CanhBaoApi != null)
+{
+    <div class="bao bao-loi"><span>!</span><span>@ViewBag.CanhBaoApi</span></div>
+}
+
+<section class="hero hien-dan">
+    <h1>Thị trường chuyển nhượng cầu thủ</h1>
+    <p>Tra cứu giá trị, so sánh chỉ số, theo dõi biến động và xây đội hình của riêng bạn — dữ liệu @(Model.SoGiaiDau > 0 ? Model.SoGiaiDau.ToString() : "các") giải đấu hàng đầu châu Âu.</p>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px">
+        <a class="nut nut-tren-san" asp-controller="Players" asp-action="Index">Khám phá cầu thủ</a>
+        <a class="nut nut-tren-san-mo"
+           asp-controller="Scouting" asp-action="Index"
+           title="@(daDangNhap ? "" : "Dành cho thành viên — cần đăng nhập")">🔭 Chế độ tuyển trạch@(daDangNhap ? "" : " 🔒")</a>
+        <a class="nut nut-tren-san-mo"
+           asp-controller="Statistics" asp-action="Index"
+           title="@(daDangNhap ? "" : "Thống kê chuyên sâu dành cho thành viên — cần đăng nhập")">
+            Xem thống kê thị trường@(daDangNhap ? "" : " 🔒")
+        </a>
+    </div>
+
+    <div class="hero-so">
+        <div>
+            <div class="con">
+                @if (Model.DatGiaNhat.Any())
+                {
+                    var caoNhat = Model.DatGiaNhat.Max(x => x.GiaTriHienTai);
+                    <span class="dem" data-dem="@caoNhat.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-le="0" data-duoi=" tr €">@DinhDangSo.TrieuEuro(caoNhat)</span>
+                }
+                else
+                {
+                    <span>—</span>
+                }
+            </div>
+            <div class="nhan-so">Giá trị cao nhất</div>
+        </div>
+        <div>
+            <div class="con"><span class="dem" data-dem="@Model.SoGiaiDau" data-le="0">@Model.SoGiaiDau</span></div>
+            <div class="nhan-so">Giải đấu</div>
+        </div>
+        <div>
+            @if (Model.ThuongVuMoi.Any())
+            {
+                <div class="con">@DinhDangSo.TrieuEuro(Model.ThuongVuMoi.Max(x => x.PhiChuyenNhuong))</div>
+            }
+            else
+            {
+                <div class="con" style="font-size:1.05rem;font-style:normal;padding:14px 0 6px">
+                    <a asp-controller="Account" asp-action="DangNhap" asp-route-returnUrl="/" style="color:#fff;text-decoration:underline">🔒 Đăng nhập để xem</a>
+                </div>
+            }
+            <div class="nhan-so">Thương vụ đắt nhất</div>
+        </div>
+    </div>
+</section>
+
+@await Html.PartialAsync("_MocDuLieu")
+
+@if (Model.XuHuong.Any())
+{
+    <div class="khoi hien-dan">
+        <div class="khoi-dau">
+            <h2>🔥 Xu hướng 7 ngày qua</h2>
+            <span class="mo">Xếp theo lượt xem hồ sơ của người dùng</span>
+        </div>
+
+        <div class="luoi">
+            @foreach (var x in Model.XuHuong)
+            {
+                <div class="the-khung-3d">
+                    <article class="the the-3d" data-bac="@GiaoDienHelper.BacChiSo(x.CauThu.ChiSoTongHop)">
+                        <div style="display:flex;align-items:center;justify-content:space-between">
+                            <span class="nhan nhan-canh-bao">#@x.ThuHang</span>
+                            <span class="mo">@x.LuotXem lượt xem</span>
+                        </div>
+
+                        <div class="the-dau">
+                            @await Html.PartialAsync("_AnhCauThu", (x.CauThu.HoTen, x.CauThu.AnhDaiDien, 0))
+                            <div style="min-width:0;flex:1">
+                                <a class="the-ten" asp-controller="Players" asp-action="ChiTiet" asp-route-id="@x.CauThu.MaCauThu">
+                                    @x.CauThu.HoTen
+                                </a>
+                                <div class="dong-meta">
+                                    <span class="nhan nhan-vi-tri">@x.CauThu.ViTriVietTat</span>
+                                    <span>@x.CauThu.CauLacBo</span>
+                                </div>
+                            </div>
+                            <div class="chi-so @GiaoDienHelper.BacChiSo(x.CauThu.ChiSoTongHop)" title="@GiaoDienHelper.ChuThichChiSo(x.CauThu.ChiSoTongHop)">@GiaoDienHelper.HienChiSo(x.CauThu.ChiSoTongHop)</div>
+                        </div>
+
+                        <div class="the-gia">
+                            <span class="gia-tri">@GiaoDienHelper.DinhDangGiaTri(x.CauThu.GiaTriHienTai)</span>
+                        </div>
+                    </article>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<div class="khoi hien-dan" data-tre="1">
+    <div class="khoi-dau">
+        <h2>Cầu thủ nổi bật</h2>
+        <div class="tab-hang">
+            <button type="button" class="tab chon" data-bang="datGia">Đắt giá nhất</button>
+            <button type="button" class="tab" data-bang="tangGia" title="Tăng nhiều nhất (triệu €) trong khoảng 6 tháng gần nhất có dữ liệu">Tăng giá mạnh</button>
+            <button type="button" class="tab" data-bang="treTrienVong">Tài năng trẻ</button>
+        </div>
+    </div>
+
+    <div class="luoi" data-vung="datGia">
+        @foreach (var ct in Model.DatGiaNhat)
+        {
+            @await Html.PartialAsync("_CauThuCard", ct)
+        }
+    </div>
+
+    <div class="luoi" data-vung="tangGia" style="display:none">
+        @foreach (var ct in Model.TangGiaManh)
+        {
+            @await Html.PartialAsync("_CauThuCard", ct)
+        }
+    </div>
+
+    <div class="luoi" data-vung="treTrienVong" style="display:none">
+        @foreach (var ct in Model.TreTrienVong)
+        {
+            @await Html.PartialAsync("_CauThuCard", ct)
+        }
+    </div>
+</div>
+
+<div class="khoi hien-dan" data-tre="2">
+    <div class="khoi-dau">
+        <h2>Thương vụ đắt giá nhất</h2>
+        <a class="nut nut-nho nut-nhe" asp-controller="Statistics" asp-action="Index" asp-route-baoCao="top-transfers">Xem tất cả</a>
+    </div>
+
+    @if (Model.ThuongVuMoi.Any())
+    {
+        <div class="bang-bao">
+            <table>
+                <thead>
+                <tr>
+                    <th>Cầu thủ</th><th>Mùa giải</th><th>Từ</th><th>Đến</th>
+                    <th class="so">Phí</th><th class="so">Giá trị lúc đó</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var tv in Model.ThuongVuMoi)
+                {
+                    <tr>
+                        <td>
+                            <a asp-controller="Players" asp-action="ChiTiet" asp-route-id="@tv.MaCauThu"
+                               style="font-weight:600">@tv.CauThu</a>
+                        </td>
+                        <td class="phu">@tv.MuaGiai</td>
+                        <td>@tv.CLBDi</td>
+                        <td>@tv.CLBDen</td>
+                        <td class="so gia-chu">@DinhDangSo.TrieuEuro(tv.PhiChuyenNhuong)</td>
+                        <td class="so phu">@DinhDangSo.TrieuEuro(tv.GiaTriThiTruongLucDo)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="rong">
+            <div class="rong-bieu-tuong">📊</div>
+            <p>Bảng thương vụ và báo cáo thống kê dành cho thành viên. Đăng nhập (hoặc đăng ký miễn phí) để xem.</p>
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                <a class="nut nut-chinh" asp-controller="Account" asp-action="DangNhap" asp-route-returnUrl="/">Đăng nhập</a>
+                <a class="nut" asp-controller="Account" asp-action="DangKy">Đăng ký</a>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.tab[data-bang]').forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                document.querySelectorAll('.tab[data-bang]').forEach(function (t) { t.classList.remove('chon'); });
+                tab.classList.add('chon');
+
+                var chon = tab.getAttribute('data-bang');
+                document.querySelectorAll('[data-vung]').forEach(function (v) {
+                    v.style.display = v.getAttribute('data-vung') === chon ? '' : 'none';
+                });
+            });
+        });
+    </script>
+}

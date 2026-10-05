@@ -1,0 +1,528 @@
+@model HoSoCauThuVm
+@{
+    ViewData["Title"] = Model.CauThu.HoTen;
+    var ct = Model.CauThu;
+    var chiSo = ct.ChiSo;
+    var quayLai = Context.Request.Path + Context.Request.QueryString;
+    var co = GiaoDienHelper.DuongDanCo(ct.MaISO, 40);
+    var mau = GiaoDienHelper.MauTheoTen(ct.HoTen);
+}
+
+<section class="ho-so-banner hien-dan" style="margin-top:22px">
+    @if (!string.IsNullOrWhiteSpace(ct.AnhDaiDien))
+    {
+        <img class="ho-so-anh anh-bay" style="--ten-bay:ct-@ct.MaCauThu" src="@ct.AnhDaiDien" alt="Ảnh @ct.HoTen"
+             data-chu="@GiaoDienHelper.ChuCaiDau(ct.HoTen)" data-mau="@mau" />
+    }
+    else
+    {
+        <div class="ho-so-anh anh-bay" style="--ten-bay:ct-@ct.MaCauThu">@GiaoDienHelper.ChuCaiDau(ct.HoTen)</div>
+    }
+
+    <div style="flex:1;min-width:0">
+        <h1 style="color:#fff">@ct.HoTen</h1>
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:8px;opacity:.92">
+            <span class="nhan" style="background:rgba(255,255,255,.18);color:#fff;border-color:transparent">@ct.ViTriVietTat — @ct.ViTri</span>
+            <span>@ct.CauLacBo</span>
+            <span>·</span>
+            <span>@ct.GiaiDau</span>
+            @if (!string.IsNullOrEmpty(co))
+            {
+                <img class="co" src="@co" alt="@ct.QuocTich" style="width:22px;height:16px" />
+            }
+            <span>@ct.QuocTich</span>
+            @if (ct.DangChanThuong)
+            {
+                <span class="nhan" style="background:rgba(248,113,113,.28);color:#fff;border-color:transparent">🩹 Đang chấn thương</span>
+            }
+        </div>
+    </div>
+
+    <div style="text-align:right">
+        <div style="font-size:12px;opacity:.8;text-transform:uppercase;letter-spacing:.05em">Giá trị hiện tại</div>
+        <div style="font-size:30px;font-weight:750;line-height:1.15">
+            <span class="dem" data-dem="@ct.GiaTriHienTai.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                  data-le="@(ct.GiaTriHienTai % 1 == 0 ? 0 : 1)" data-duoi=" tr €">@GiaoDienHelper.DinhDangGiaTri(ct.GiaTriHienTai)</span>
+        </div>
+        <div style="opacity:.9;font-size:13px">
+            @if (ct.PhanTramSoVoiMocTruoc is decimal pt && ct.NgayMocTruoc is DateTime ngayTruoc)
+            {
+                @* So với lần định giá trước chứ không phải "30 ngày": nguồn dữ liệu đã ngừng cập nhật
+                   nên con số 30 ngày luôn là 0 và mũi tên ▲ đi kèm là sai. *@
+                <span title="Định giá trước: @GiaoDienHelper.DinhDangGiaTri(ct.GiaTriMocTruoc ?? 0)">
+                    @(pt > 0 ? "▲" : "▼") @DinhDangSo.So(Math.Abs(pt), 1)% so với định giá @ngayTruoc.ToString("MM/yyyy")
+                </span>
+            }
+            else
+            {
+                <span>Chưa có mốc định giá trước để so sánh</span>
+            }
+        </div>
+        <div style="display:flex;gap:7px;margin-top:12px;justify-content:flex-end">
+            <form asp-controller="Compare" asp-action="Them" method="post">
+                <input type="hidden" name="maCauThu" value="@ct.MaCauThu" />
+                <input type="hidden" name="quayLai" value="@quayLai" />
+                <button type="submit" class="nut nut-nho nut-tren-san">＋ So sánh</button>
+            </form>
+            @await Html.PartialAsync("_NutTheoDoi", (ct.MaCauThu, Model.DangTheoDoi))
+        </div>
+    </div>
+</section>
+
+@{ ViewData["MocDuLieu_Gon"] = true; }
+@await Html.PartialAsync("_MocDuLieu")
+
+<nav class="tab-dinh">
+    <a class="tab chon" href="#tongquan">Tổng quan</a>
+    <a class="tab" href="#giatri">Biến động giá</a>
+    <a class="tab" href="#chuyennhuong">Chuyển nhượng</a>
+    <a class="tab" href="#chanthuong">Chấn thương</a>
+    <a class="tab" href="#chiso">Chỉ số</a>
+    <a class="tab" asp-controller="Scouting" asp-action="ThayThe" asp-route-id="@ct.MaCauThu"
+       style="margin-left:auto">🔎 Tìm người thay thế</a>
+</nav>
+
+<div class="ho-so">
+    <div>
+        <div class="khoi hien-dan" id="tongquan">
+            <div class="khoi-dau">
+                <h3>Thông tin cá nhân</h3>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <a class="nut nut-nho nut-nhe" asp-controller="Analytics" asp-action="DuBao"
+                       asp-route-id="@ct.MaCauThu"
+                       title="@(string.IsNullOrEmpty(Context.Session.GetString("AccessToken")) ? "Dành cho thành viên — cần đăng nhập" : "")">
+                        📈 Dự báo giá@(string.IsNullOrEmpty(Context.Session.GetString("AccessToken")) ? " 🔒" : "")
+                    </a>
+                    @* E7 — kết xuất hồ sơ đầy đủ ra PDF. *@
+                    <a class="nut nut-nho nut-nhe" asp-controller="Reports" asp-action="HoSoPdf"
+                       asp-route-id="@ct.MaCauThu">📄 Tải hồ sơ PDF</a>
+                </div>
+            </div>
+            <div class="luoi-tin">
+                <div class="o-tin"><div class="nhan-o">Ngày sinh</div><div class="gia-o">@ct.NgaySinh.ToString("dd/MM/yyyy")</div></div>
+                <div class="o-tin"><div class="nhan-o">Tuổi</div><div class="gia-o">@ct.Tuoi</div></div>
+                <div class="o-tin"><div class="nhan-o">Chiều cao</div><div class="gia-o">@(ct.ChieuCao is int cao ? $"{cao} cm" : "—")</div></div>
+                <div class="o-tin"><div class="nhan-o">Cân nặng</div><div class="gia-o">@(ct.CanNang is int nang ? $"{nang} kg" : "—")</div></div>
+                <div class="o-tin"><div class="nhan-o">Chân thuận</div><div class="gia-o">@ct.ChanThuan</div></div>
+                <div class="o-tin"><div class="nhan-o">Số áo</div><div class="gia-o">@(ct.SoAo?.ToString() ?? "—")</div></div>
+                <div class="o-tin">
+                    <div class="nhan-o">Hạn hợp đồng</div>
+                    <div class="gia-o">@(ct.NgayHetHanHopDong?.ToString("MM/yyyy") ?? "—")</div>
+                    @if (ct.NgayHetHanHopDong is DateTime hanHd && hanHd.Date < DateTime.Today)
+                    {
+                        @* Nguồn dữ liệu chốt trước ngày hết hạn nên chưa biết cầu thủ đã gia hạn hay rời đi. *@
+                        <div class="mo" style="font-size:12px;margin-top:4px" title="Nguồn dữ liệu chưa cập nhật việc gia hạn hay chuyển đi">Đã quá hạn — chưa rõ gia hạn</div>
+                    }
+                </div>
+                <div class="o-tin"><div class="nhan-o">Giá trị đỉnh cao</div><div class="gia-o">@GiaoDienHelper.DinhDangGiaTri(ct.GiaTriCaoNhat)</div></div>
+                <div class="o-tin"><div class="nhan-o">Tổng phí sự nghiệp</div><div class="gia-o">@GiaoDienHelper.DinhDangGiaTri(ct.TongPhiChuyenNhuong)</div></div>
+                <div class="o-tin"><div class="nhan-o">Số lần chuyển nhượng</div><div class="gia-o">@ct.TongSoThuongVu</div></div>
+            </div>
+        </div>
+
+        @if (Model.LichSuGiaTri.Any())
+        {
+            <div class="khoi hien-dan" id="giatri">
+                <div class="khoi-dau"><h3>Biến động giá trị thị trường</h3></div>
+                <canvas id="bieuDoGiaTri" height="88"></canvas>
+            </div>
+        }
+
+        <div class="khoi hien-dan" id="chuyennhuong">
+            <div class="khoi-dau">
+                <h3>Lịch sử chuyển nhượng</h3>
+                <span class="nhan">@Model.ChuyenNhuongs.Count thương vụ</span>
+            </div>
+            @if (Model.ChuyenNhuongs.Any())
+            {
+                <div class="bang-bao">
+                    <table>
+                        <thead>
+                        <tr><th>Mùa</th><th>Ngày</th><th>Từ</th><th>Đến</th><th>Loại</th>
+                            <th class="so">Phí</th><th class="so">Giá trị lúc đó</th></tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var cn in Model.ChuyenNhuongs)
+                        {
+                            <tr>
+                                <td class="phu">@cn.MuaGiai</td>
+                                <td class="phu">@cn.NgayChuyenNhuong.ToString("dd/MM/yy")</td>
+                                <td>@cn.CLBDi</td>
+                                <td style="font-weight:600">@cn.CLBDen</td>
+                                <td><span class="nhan">@cn.LoaiChuyenNhuong</span></td>
+                                <td class="so" style="font-weight:650">
+                                    @if (cn.MaLoai == 2)
+                                    {
+                                        <span class="phu">Miễn phí</span>
+                                    }
+                                    else if (cn.MaLoai == 5 || cn.PhiChuyenNhuong <= 0)
+                                    {
+                                        <span class="phu" title="Nguồn dữ liệu không công bố phí">—</span>
+                                    }
+                                    else
+                                    {
+                                        @GiaoDienHelper.DinhDangGiaTri(cn.PhiChuyenNhuong)
+                                    }
+                                </td>
+                                <td class="so phu">@(cn.GiaTriThiTruongLucDo > 0 ? GiaoDienHelper.DinhDangGiaTri(cn.GiaTriThiTruongLucDo) : "—")</td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot>
+                        <tr>
+                            <td colspan="5">Tổng cộng</td>
+                            <td class="so">@GiaoDienHelper.DinhDangGiaTri(Model.ChuyenNhuongs.Sum(x => x.PhiChuyenNhuong))</td>
+                            <td></td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="rong"><div class="rong-bieu-tuong">🔁</div><p>Chưa ghi nhận thương vụ chuyển nhượng nào.</p></div>
+            }
+        </div>
+
+        <div class="khoi hien-dan" id="chanthuong">
+            <div class="khoi-dau">
+                <h3>Lịch sử chấn thương</h3>
+                @if (ct.CoDuLieuChanThuong)
+                {
+                    <span class="nhan @(ct.SoNgayNghiChanThuong3Mua > 120 ? "nhan-canh-bao" : "nhan-tot")">
+                        @ct.SoNgayNghiChanThuong3Mua ngày nghỉ / 3 mùa
+                    </span>
+                }
+                else
+                {
+                    <span class="nhan">Chưa có dữ liệu</span>
+                }
+            </div>
+            @if (Model.ChanThuongs.Any())
+            {
+                <div class="bang-bao">
+                    <table>
+                        <thead>
+                        <tr><th>Mùa</th><th>Loại chấn thương</th><th>Bắt đầu</th><th>Kết thúc</th>
+                            <th class="so">Ngày nghỉ</th><th class="so">Trận vắng</th></tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var c in Model.ChanThuongs)
+                        {
+                            <tr>
+                                <td class="phu">@c.MuaGiai</td>
+                                <td>@c.LoaiChanThuong</td>
+                                <td class="phu">@c.NgayBatDau.ToString("dd/MM/yy")</td>
+                                <td>
+                                    @if (c.DangDieuTri)
+                                    {
+                                        <span class="nhan nhan-canh-bao">Đang điều trị</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="phu">@c.NgayKetThuc?.ToString("dd/MM/yy")</span>
+                                    }
+                                </td>
+                                <td class="so">@c.SoNgayNghi</td>
+                                <td class="so">@c.SoTranVang</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else if (ct.CoDuLieuChanThuong)
+            {
+                <div class="rong"><div class="rong-bieu-tuong">💪</div><p>Không ghi nhận chấn thương nào trong 3 mùa gần nhất.</p></div>
+            }
+            else
+            {
+                @* Không có bản ghi KHÔNG có nghĩa là cầu thủ chưa từng chấn thương: nguồn hiện tại
+                   (bộ dữ liệu Transfermarkt) đơn giản là không có thông tin này. *@
+                <div class="rong">
+                    <div class="rong-bieu-tuong">ℹ️</div>
+                    <p>Nguồn dữ liệu hiện tại chưa có lịch sử chấn thương của cầu thủ này.</p>
+                    <p class="mo" style="margin:4px 0 0">Thông tin sẽ xuất hiện khi đồng bộ được dữ liệu chấn thương từ API bóng đá.</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div>
+        @if (chiSo != null)
+        {
+            @* Radar chỉ có nghĩa khi cầu thủ có chỉ số thật; thiếu số liệu thì toàn số 0 và đồ thị
+               dồn về tâm, trông như cầu thủ kém nhất vị trí. *@
+            @if (Model.TrungBinhViTri is { SoCauThu: > 0 } && !chiSo.ThieuDuLieu)
+            {
+                <div class="khoi hien-dan">
+                    <div class="khoi-dau">
+                        <h3>So với mặt bằng vị trí</h3>
+                        <span class="mo">@Model.TrungBinhViTri.SoCauThu cầu thủ cùng vị trí</span>
+                    </div>
+                    <canvas id="bieuDoRadarViTri"></canvas>
+                </div>
+            }
+
+            <div class="khoi hien-dan" id="chiso">
+                <div class="khoi-dau">
+                    <h3>Chỉ số</h3>
+                    @if (!chiSo.ThieuDuLieu)
+                    {
+                        <div class="chi-so @GiaoDienHelper.BacChiSo(ct.ChiSoTongHop)">@ct.ChiSoTongHop</div>
+                    }
+                </div>
+
+                @if (chiSo.ThieuDuLieu)
+                {
+                    @* Không đủ số liệu thi đấu để tính — hiển thị đúng sự thật thay vì
+                       một con số bịa ra từ giá trị chuyển nhượng. *@
+                    <div class="rong" style="padding:18px 0">
+                        <div class="rong-bieu-tuong">📊</div>
+                        <p class="mo" style="margin:6px 0 0">
+                            Chưa đủ số liệu thi đấu mùa @chiSo.MuaGiai để tính chỉ số cho cầu thủ này.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    var tenCs = TenChiSo.Theo(chiSo.NguonChiSo);
+                    var dsChiSo = new (string Ten, int Gia)[]
+                    {
+                        (tenCs[0], chiSo.TocDo), (tenCs[1], chiSo.DutDiem), (tenCs[2], chiSo.Chuyen),
+                        (tenCs[3], chiSo.ReDat), (tenCs[4], chiSo.PhongNgu), (tenCs[5], chiSo.TheLuc)
+                    };
+
+                    foreach (var cs in dsChiSo)
+                    {
+                        <div class="thanh-cs">
+                            <div class="dau-cs"><span>@cs.Ten</span><strong data-dem="@cs.Gia" data-le="0">@cs.Gia</strong></div>
+                            <div class="thanh-nen"><div class="thanh-day" data-rong="@cs.Gia"></div></div>
+                        </div>
+                    }
+
+                    <p class="mo" style="font-size:.8rem;margin:10px 0 0;line-height:1.5">
+                        @if (chiSo.NguonChiSo == "TinhTuThongKe")
+                        {
+                            <text>
+                                Sáu chỉ số được tính từ số liệu thi đấu thật của mùa @chiSo.MuaGiai:
+                                <strong>Ra sân</strong> và <strong>Thể lực</strong> theo số phút thi đấu,
+                                <strong>Ghi bàn</strong> và <strong>Kiến tạo</strong> theo hiệu suất mỗi 90 phút,
+                                <strong>Tấn công</strong> là trung bình của hai chỉ số đó,
+                                <strong>Kỷ luật</strong> theo số thẻ phạt. Thang điểm 1–99.
+                            </text>
+                        }
+                        else
+                        {
+                            <text>
+                                Chỉ số ước lượng từ giá trị thị trường, chưa đối chiếu với số liệu thi đấu.
+                            </text>
+                        }
+                    </p>
+                }
+            </div>
+
+            <div class="khoi">
+                <div class="khoi-dau"><h3>Mùa @chiSo.MuaGiai</h3></div>
+                <div class="luoi-tin">
+                    <div class="o-tin"><div class="nhan-o">Số trận</div><div class="gia-o">@chiSo.SoTran</div></div>
+                    <div class="o-tin"><div class="nhan-o">Phút thi đấu</div><div class="gia-o">@DinhDangSo.So(chiSo.SoPhutThiDau)</div></div>
+                    <div class="o-tin"><div class="nhan-o">Bàn thắng</div><div class="gia-o">@chiSo.BanThang</div></div>
+                    <div class="o-tin"><div class="nhan-o">Kiến tạo</div><div class="gia-o">@chiSo.KienTao</div></div>
+                    <div class="o-tin"><div class="nhan-o">Thẻ vàng</div><div class="gia-o">@chiSo.TheVang</div></div>
+                    <div class="o-tin"><div class="nhan-o">Thẻ đỏ</div><div class="gia-o">@chiSo.TheDo</div></div>
+                </div>
+            </div>
+        }
+
+        @if (Model.TuongTu.Any())
+        {
+            <div class="khoi">
+                <div class="khoi-dau"><h3>Cầu thủ tương đồng</h3></div>
+                @foreach (var tt in Model.TuongTu.Take(5))
+                {
+                    <a asp-controller="Players" asp-action="ChiTiet" asp-route-id="@tt.MaCauThu"
+                       style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--vien)">
+                        @await Html.PartialAsync("_AnhCauThu", (tt.HoTen, tt.AnhDaiDien, 34))
+                        <span style="flex:1;min-width:0">
+                            <span style="font-weight:600;display:block">@tt.HoTen</span>
+                            <span class="mo">@tt.CauLacBo · @tt.Tuoi tuổi</span>
+                        </span>
+                        <span class="gia-chu" style="font-size:13.5px">@DinhDangSo.TrieuEuro(tt.GiaTriHienTai)</span>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    @if (Model.LichSuGiaTri.Any() || (Model.TrungBinhViTri is { SoCauThu: > 0 } && chiSo != null))
+    {
+        @* Nạp Chart.js MỘT lần cho cả hai biểu đồ (trước đây nạp hai lần). *@
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    }
+    @if (Model.TrungBinhViTri is { SoCauThu: > 0 } && chiSo is { ThieuDuLieu: false })
+    {
+        <script>
+            (function () {
+                var tb = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrungBinhViTri));
+                var cs = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(chiSo));
+                // Tên đưa qua JSON để tên có dấu nháy (O'Riley, M'Bala...) không làm hỏng mã
+                // hay hiện thành "&#x27;" trong chú thích.
+                var ten = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ct.HoTen));
+                var bieuDo = null;
+
+                function ve() {
+                    if (bieuDo) bieuDo.destroy();
+                    bieuDo = new Chart(document.getElementById('bieuDoRadarViTri'), {
+                        type: 'radar',
+                        data: {
+                            labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TenChiSo.Theo(chiSo.NguonChiSo))),
+                            datasets: [
+                                {
+                                    label: ten,
+                                    data: [cs.TocDo, cs.DutDiem, cs.Chuyen, cs.ReDat, cs.PhongNgu, cs.TheLuc],
+                                    borderColor: PMMau('--chinh'),
+                                    backgroundColor: PMMau('--chinh', .2),
+                                    pointBackgroundColor: PMMau('--chinh'),
+                                    borderWidth: 2
+                                },
+                                {
+                                    label: 'Trung bình ' + tb.ViTri,
+                                    data: [tb.TocDo, tb.DutDiem, tb.Chuyen, tb.ReDat, tb.PhongNgu, tb.TheLuc],
+                                    borderColor: PMMau('--chu-3'),
+                                    backgroundColor: PMMau('--chu-3', .12),
+                                    pointBackgroundColor: PMMau('--chu-3'),
+                                    borderDash: [5, 4],
+                                    borderWidth: 2
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { labels: { color: PMMau('--chu-2'), boxWidth: 14 } } },
+                            scales: {
+                                r: {
+                                    min: 30, max: 99,
+                                    ticks: { display: false, stepSize: 10 },
+                                    grid: { color: PMMau('--vien') },
+                                    angleLines: { color: PMMau('--vien') },
+                                    pointLabels: { color: PMMau('--chu-2'), font: { size: 12 } }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                ve();
+                document.addEventListener('pmDoiGiaoDien', ve);
+            })();
+        </script>
+    }
+
+    <script>
+        (function () {
+            // Chỉ các tab neo trong trang (href="#..."). Tab "Tìm người thay thế" là liên kết sang
+            // trang khác; đưa nó vào querySelector làm cả đoạn mã này ném lỗi và mất chức năng tab.
+            var tabs = document.querySelectorAll('.tab-dinh .tab[href^="#"]');
+            var khoi = Array.prototype.map.call(tabs, function (t) {
+                return document.querySelector(t.getAttribute('href'));
+            });
+
+            tabs.forEach(function (t, i) {
+                t.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (khoi[i]) khoi[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+
+            window.addEventListener('scroll', function () {
+                var moc = window.scrollY + 160;
+                var chon = 0;
+
+                khoi.forEach(function (k, i) {
+                    if (k && k.offsetTop <= moc) chon = i;
+                });
+
+                tabs.forEach(function (t, i) { t.classList.toggle('chon', i === chon); });
+            }, { passive: true });
+        })();
+    </script>
+    @if (Model.LichSuGiaTri.Any())
+    {
+        <script>
+            (function () {
+                // Trục hoành là THỜI GIAN THẬT (mili-giây) chứ không phải nhãn "MM/yyyy" cách đều:
+                // trước đây 9 mốc trong 9 ngày chiếm chỗ ngang với cả năm, kéo méo đường giá.
+                var diem = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                               Model.LichSuGiaTri.OrderBy(x => x.Ngay).Select(x => new
+                               {
+                                   x = new DateTimeOffset(DateTime.SpecifyKind(x.Ngay, DateTimeKind.Utc)).ToUnixTimeMilliseconds(),
+                                   y = x.GiaTri
+                               })));
+                var bieuDo = null;
+
+                function thangNam(ms) {
+                    var d = new Date(ms);
+                    return ('0' + (d.getUTCMonth() + 1)).slice(-2) + '/' + d.getUTCFullYear();
+                }
+
+                function ve() {
+                    if (bieuDo) bieuDo.destroy();
+                    bieuDo = new Chart(document.getElementById('bieuDoGiaTri'), {
+                        type: 'line',
+                        data: {
+                            datasets: [{
+                                label: 'Giá trị (triệu €)',
+                                data: diem,
+                                borderColor: PMMau('--chinh'),
+                                backgroundColor: PMMau('--chinh', .12),
+                                pointBackgroundColor: PMMau('--chinh'),
+                                borderWidth: 2,
+                                fill: true,
+                                tension: .25,
+                                stepped: false,
+                                pointRadius: diem.length > 40 ? 0 : 3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            parsing: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        title: function (muc) { return thangNam(muc[0].parsed.x); },
+                                        label: function (muc) {
+                                            return ' ' + PMGia(muc.parsed.y);
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    type: 'linear',
+                                    // Bó trục đúng khoảng có dữ liệu, không để Chart.js nới thêm nửa năm trống.
+                                    min: diem[0].x,
+                                    max: diem[diem.length - 1].x,
+                                    grid: { display: false },
+                                    ticks: { color: PMMau('--chu-3'), maxTicksLimit: 8, callback: thangNam }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: PMMau('--vien') },
+                                    ticks: { color: PMMau('--chu-3'), callback: function (v) { return PMSo(v, 2); } }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                ve();
+                // Vẽ lại khi người dùng đổi sáng/tối để màu luôn khớp giao diện.
+                document.addEventListener('pmDoiGiaoDien', ve);
+            })();
+        </script>
+    }
+}

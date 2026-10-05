@@ -1,0 +1,242 @@
+@model NhapDatasetVm
+@{
+    ViewData["Title"] = "Nạp bộ dữ liệu Transfermarkt";
+    var tc = Model.TuyChon;
+}
+
+<div class="khung-hep">
+    <div class="khoi-dau">
+        <h1>Nạp bộ dữ liệu Transfermarkt</h1>
+        <span class="nhan">Kaggle · CC0</span>
+    </div>
+    <p class="mo">
+        Nguồn: <strong>davidcariboo/player-scores</strong> trên Kaggle, dữ liệu lấy từ Transfermarkt,
+        giấy phép CC0 (phạm vi công cộng). Dataset cung cấp <strong>giá trị thị trường thật</strong> và
+        lịch sử giá theo thời gian — thứ mà API-Football không có.
+        Tải về, giải nén, rồi dán đường dẫn thư mục chứa các tệp <code>.csv</code> vào ô bên dưới.
+    </p>
+
+    @if (ViewBag.Loi != null)
+    {
+        <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+    }
+    @if (ViewBag.ThongBao != null)
+    {
+        <div class="bao bao-ok hien-dan"><span>✓</span><span>@ViewBag.ThongBao</span></div>
+    }
+
+    <div class="khoi">
+        <div class="khoi-dau"><h3>Bước 1 — Kiểm tra thư mục</h3></div>
+
+        <form asp-action="XemTruoc" method="post" class="form-khung">
+            @Html.AntiForgeryToken()
+            <div class="truong">
+                <label for="ThuMuc">Đường dẫn thư mục chứa tệp CSV</label>
+                <input class="o-nhap" id="ThuMuc" name="TuyChon.ThuMuc" value="@tc.ThuMuc"
+                       placeholder="C:\Users\August\Downloads\player-scores" required />
+            </div>
+            <div class="the-nut">
+                <button type="submit" class="nut nut-nhe">Kiểm tra thư mục</button>
+            </div>
+        </form>
+
+        @if (Model.CacTep.Count > 0)
+        {
+            <table style="margin-top:14px">
+                <thead>
+                <tr><th>Tệp</th><th>Trạng thái</th><th style="text-align:right">Dung lượng</th><th>Số cột</th></tr>
+                </thead>
+                <tbody>
+                @foreach (var tep in Model.CacTep)
+                {
+                    <tr>
+                        <td><code>@tep.TenTep</code></td>
+                        <td>
+                            @if (!tep.TonTai)
+                            {
+                                <span class="nhan nhan-canh-bao">Thiếu</span>
+                            }
+                            else if (tep.Loi != null)
+                            {
+                                <span class="nhan nhan-canh-bao" title="@tep.Loi">Lỗi đọc</span>
+                            }
+                            else
+                            {
+                                <span class="nhan nhan-tot">Đọc được</span>
+                            }
+                        </td>
+                        <td style="text-align:right">@(tep.TonTai ? DinhDangSo.So(tep.KichThuocMB, 1) + " MB" : "—")</td>
+                        <td>
+                            @if (tep.CacCot.Count > 0)
+                            {
+                                <details>
+                                    <summary>@tep.CacCot.Count cột</summary>
+                                    <span class="mo" style="font-size:.85rem">@string.Join(", ", tep.CacCot)</span>
+                                </details>
+                            }
+                            else
+                            {
+                                <span class="mo">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="khoi">
+        <div class="khoi-dau"><h3>Bước 2 — Nạp dữ liệu</h3></div>
+
+        <form asp-action="Nhap" method="post" class="form-khung" id="formNap">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="TuyChon.ThuMuc" value="@tc.ThuMuc" />
+
+            <label class="chuyen" style="display:flex;gap:8px;align-items:center;margin:6px 0">
+                <input type="checkbox" name="TuyChon.ChiNamGiaiLon" value="true" @(tc.ChiNamGiaiLon ? "checked" : "") />
+                <span>Chỉ nạp 5 giải lớn (Premier League, LaLiga, Serie A, Bundesliga, Ligue 1)</span>
+            </label>
+
+            <label class="chuyen" style="display:flex;gap:8px;align-items:center;margin:6px 0">
+                <input type="checkbox" name="TuyChon.XoaDuLieuCu" value="true" @(tc.XoaDuLieuCu ? "checked" : "") />
+                <span>Xóa dữ liệu cũ trước khi nạp</span>
+            </label>
+
+            <label class="chuyen" style="display:flex;gap:8px;align-items:center;margin:6px 0 6px 24px">
+                <input type="checkbox" name="TuyChon.XoaCaDuLieuMau" value="true" @(tc.XoaCaDuLieuMau ? "checked" : "") />
+                <span>Xóa cả 149 cầu thủ mẫu ban đầu — cơ sở dữ liệu chỉ còn dữ liệu thật</span>
+            </label>
+
+            <label class="chuyen" style="display:flex;gap:8px;align-items:center;margin:6px 0">
+                <input type="checkbox" name="TuyChon.BoQuaKhongCoGia" value="true" @(tc.BoQuaKhongCoGia ? "checked" : "") />
+                <span>Bỏ qua cầu thủ không có giá trị thị trường trong bộ dữ liệu</span>
+            </label>
+
+            <label class="chuyen" style="display:flex;gap:8px;align-items:center;margin:6px 0">
+                <input type="checkbox" name="TuyChon.NapLichSuGia" value="true" @(tc.NapLichSuGia ? "checked" : "") />
+                <span>Nạp lịch sử giá trị thật (player_valuations.csv)</span>
+            </label>
+
+            <label class="chuyen" style="display:flex;gap:8px;align-items:center;margin:6px 0">
+                <input type="checkbox" name="TuyChon.NapChuyenNhuong" value="true" @(tc.NapChuyenNhuong ? "checked" : "") />
+                <span>Nạp lịch sử chuyển nhượng (transfers.csv)</span>
+            </label>
+
+            <label class="chuyen" style="display:flex;gap:8px;align-items:center;margin:6px 0">
+                <input type="checkbox" name="TuyChon.NapThongKeThiDau" value="true" @(tc.NapThongKeThiDau ? "checked" : "") />
+                <span>Gộp thống kê thi đấu và tính chỉ số từ số liệu thật (appearances.csv — chậm nhất)</span>
+            </label>
+
+            <div class="luoi" style="grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px">
+                <div class="truong">
+                    <label for="MuaGiaiToiThieu">Mùa giải tối thiểu (last_season)</label>
+                    <input class="o-nhap" type="number" min="2000" max="2100" id="MuaGiaiToiThieu"
+                           name="TuyChon.MuaGiaiToiThieu" value="@tc.MuaGiaiToiThieu" />
+                </div>
+                <div class="truong">
+                    <label for="TenMuaGiai">Nhãn mùa giải</label>
+                    <input class="o-nhap" id="TenMuaGiai" name="TuyChon.TenMuaGiai" value="@tc.TenMuaGiai" />
+                </div>
+            </div>
+
+            <div class="bao bao-ok" style="margin-top:6px">
+                <span>ℹ</span>
+                <span class="mo">
+                    «Mùa giải tối thiểu» là bộ lọc quan trọng nhất. Bộ dữ liệu chứa 50.149 cầu thủ
+                    của mọi thời kỳ; để 2025 thì chỉ lấy người còn thi đấu mùa 2025/26, bỏ trống
+                    hoặc để 0 sẽ kéo vào cả cầu thủ đã giải nghệ.
+                </span>
+            </div>
+
+            <div class="luoi" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px">
+                <div class="truong">
+                    <label for="GiaToiThieu">Bỏ qua cầu thủ dưới (triệu €)</label>
+                    <input class="o-nhap" type="number" step="0.1" min="0" id="GiaToiThieu"
+                           name="TuyChon.GiaToiThieuTrieuEur" value="@tc.GiaToiThieuTrieuEur" />
+                </div>
+                <div class="truong">
+                    <label for="SoNam">Lịch sử giá trong (năm)</label>
+                    <input class="o-nhap" type="number" min="0" max="30" id="SoNam"
+                           name="TuyChon.SoNamLichSuGia" value="@tc.SoNamLichSuGia" />
+                </div>
+                <div class="truong">
+                    <label for="PhutToiThieu">Phút tối thiểu để tính chỉ số</label>
+                    <input class="o-nhap" type="number" min="0" max="3000" id="PhutToiThieu"
+                           name="TuyChon.PhutToiThieuTinhChiSo" value="@tc.PhutToiThieuTinhChiSo" />
+                </div>
+            </div>
+
+            <div class="bao" style="margin-top:12px">
+                <span>⏱</span>
+                <span class="mo">
+                    Với 5 giải lớn, quá trình nạp thường mất 3–10 phút. Đừng đóng trình duyệt.
+                    Trang sẽ đứng yên cho tới khi xong.
+                </span>
+            </div>
+
+            <div class="the-nut" style="margin-top:12px">
+                <button type="submit" class="nut nut-chinh" id="nutNap">Bắt đầu nạp</button>
+            </div>
+        </form>
+    </div>
+
+    @if (Model.KetQua != null)
+    {
+        var kq = Model.KetQua;
+        <div class="khoi">
+            <div class="khoi-dau">
+                <h3>Kết quả</h3>
+                <span class="nhan">@DinhDangSo.So(kq.SoGiay) giây</span>
+            </div>
+
+            <div class="luoi-tin">
+                <div class="o-tin o-tot"><strong>@DinhDangSo.So(kq.CauThuThemMoi)</strong><span class="mo">Cầu thủ mới</span></div>
+                <div class="o-tin"><strong>@DinhDangSo.So(kq.CauThuCapNhat)</strong><span class="mo">Cầu thủ cập nhật</span></div>
+                <div class="o-tin"><strong>@DinhDangSo.So(kq.CauLacBoThemMoi)</strong><span class="mo">CLB mới</span></div>
+                <div class="o-tin"><strong>@DinhDangSo.So(kq.QuocGiaThemMoi)</strong><span class="mo">Quốc gia mới</span></div>
+                <div class="o-tin"><strong>@DinhDangSo.So(kq.MocGiaThemMoi)</strong><span class="mo">Mốc giá thật</span></div>
+                <div class="o-tin"><strong>@DinhDangSo.So(kq.ChuyenNhuongThemMoi)</strong><span class="mo">Thương vụ</span></div>
+                <div class="o-tin o-tot"><strong>@DinhDangSo.So(kq.ChiSoTinhTuThongKe)</strong><span class="mo">Chỉ số tính từ số liệu thật</span></div>
+                <div class="o-tin"><strong>@DinhDangSo.So(kq.CauThuThieuThongKe)</strong><span class="mo">Chưa có số liệu thi đấu</span></div>
+            </div>
+
+            <ul class="mo" style="padding-left:18px;line-height:1.8;margin-top:12px">
+                <li>Bỏ qua @DinhDangSo.So(kq.CauThuThieuGia) cầu thủ không có giá trị thị trường.</li>
+                <li>Bỏ qua @DinhDangSo.So(kq.ChuyenNhuongTuongLaiBoQua) dòng chuyển nhượng ghi ngày tương lai (mốc hết hạn hợp đồng).</li>
+                <li>Sửa lại @DinhDangSo.So(kq.GiaCaoNhatSuaLai) giá trị đỉnh cho khớp lịch sử giá thật.</li>
+                <li>Xóa @DinhDangSo.So(kq.ChanThuongDaXoa) bản ghi chấn thương giả (bộ dữ liệu không có dữ liệu chấn thương).</li>
+                <li>Đã đọc @DinhDangSo.So(kq.SoDongDaDoc) dòng CSV.</li>
+            </ul>
+
+            @if (kq.SoCauThuDaXoa > 0)
+            {
+                <p class="mo" style="margin-top:10px">
+                    Đã xóa @DinhDangSo.So(kq.SoCauThuDaXoa) cầu thủ không thuộc bộ dữ liệu.
+                </p>
+            }
+
+            @if (kq.DanhSachLoi.Count > 0)
+            {
+                <h4 style="margin:14px 0 6px">Cảnh báo</h4>
+                <ul class="mo" style="padding-left:18px;line-height:1.7">
+                    @foreach (var loi in kq.DanhSachLoi)
+                    {
+                        <li>@loi</li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Nạp dữ liệu chạy lâu — khóa nút để tránh bấm hai lần.
+        document.getElementById('formNap').addEventListener('submit', function () {
+            var nut = document.getElementById('nutNap');
+            nut.disabled = true;
+            nut.textContent = 'Đang nạp, vui lòng chờ…';
+        });
+    </script>
+}

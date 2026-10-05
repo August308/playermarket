@@ -1,0 +1,101 @@
+@model ThayTheVm
+@{
+    ViewData["Title"] = "Tìm người thay thế " + Model.CauThuGoc.HoTen;
+    var goc = Model.CauThuGoc;
+}
+
+<section class="ho-so-banner hien-dan" style="margin-top:22px">
+    <div class="ho-so-anh">@GiaoDienHelper.ChuCaiDau(goc.HoTen)</div>
+
+    <div style="flex:1;min-width:0">
+        <div style="opacity:.85;font-size:13px">Tìm cầu thủ có thể thay thế</div>
+        <h1 style="color:#fff">@goc.HoTen</h1>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;opacity:.9">
+            <span class="nhan" style="background:rgba(255,255,255,.18);color:#fff;border-color:transparent">@goc.ViTri</span>
+            <span>@goc.Tuoi tuổi</span>
+            <span>@goc.CauLacBo</span>
+            <span>@GiaoDienHelper.DinhDangGiaTri(goc.GiaTriHienTai)</span>
+        </div>
+    </div>
+
+    <form method="get" asp-controller="Scouting" asp-action="ThayThe" style="display:flex;gap:8px;align-items:center">
+        <input type="hidden" name="id" value="@goc.MaCauThu" />
+        <input class="o-nhap" type="number" name="nganSach" step="5" min="0" placeholder="Ngân sách tối đa"
+               value="@Model.NganSach" style="width:170px" />
+        <button type="submit" class="nut nut-nho nut-tren-san">Lọc</button>
+    </form>
+</section>
+
+<p class="phu" style="margin:0 0 16px">
+    Mức tương đồng tính bằng khoảng cách Euclid trên 6 chỉ số, có điều chỉnh theo chênh lệch tuổi.
+    Chỉ xét cầu thủ cùng nhóm vị trí.
+</p>
+
+@if (!Model.DanhSach.Any())
+{
+    <div class="khoi rong">
+        <div class="rong-bieu-tuong">🔍</div>
+        <h3 style="margin-bottom:6px">Không tìm thấy cầu thủ tương đồng</h3>
+        <p class="phu" style="margin:0">Hãy nâng ngân sách hoặc bỏ giới hạn giá.</p>
+    </div>
+}
+else
+{
+    <div class="luoi">
+        @foreach (var t in Model.DanhSach)
+        {
+            <div class="the-khung-3d hien-dan">
+                <article class="the the-3d" data-bac="@GiaoDienHelper.BacChiSo(t.CauThu.ChiSoTongHop)">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                        <span class="nhan nhan-tot">Tương đồng @t.DoTuongDong%</span>
+                        <span class="@(t.ChenhLechGia <= 0 ? "tang" : "giam")" style="font-size:12.5px">
+                            @(t.ChenhLechGia <= 0 ? "Rẻ hơn " : "Đắt hơn ")@DinhDangSo.TrieuEuro(Math.Abs(t.ChenhLechGia))
+                        </span>
+                    </div>
+
+                    <div class="the-dau">
+                        @await Html.PartialAsync("_AnhCauThu", (t.CauThu.HoTen, t.CauThu.AnhDaiDien, 0))
+
+                        <div style="min-width:0;flex:1">
+                            <a class="the-ten" asp-controller="Players" asp-action="ChiTiet" asp-route-id="@t.CauThu.MaCauThu">
+                                @t.CauThu.HoTen
+                            </a>
+                            <div class="dong-meta">
+                                <span class="nhan nhan-vi-tri">@t.CauThu.ViTriVietTat</span>
+                                <span>@t.CauThu.Tuoi tuổi</span>
+                                <span>@t.CauThu.CauLacBo</span>
+                            </div>
+                        </div>
+
+                        <div class="chi-so @GiaoDienHelper.BacChiSo(t.CauThu.ChiSoTongHop)" title="@GiaoDienHelper.ChuThichChiSo(t.CauThu.ChiSoTongHop)">@GiaoDienHelper.HienChiSo(t.CauThu.ChiSoTongHop)</div>
+                    </div>
+
+                    @if (t.DiemManhHon.Any())
+                    {
+                        <div class="dong-meta">
+                            @foreach (var d in t.DiemManhHon)
+                            {
+                                <span class="nhan nhan-tot">@d</span>
+                            }
+                        </div>
+                    }
+
+                    @if (t.DiemYeuHon.Any())
+                    {
+                        <div class="dong-meta">
+                            @foreach (var d in t.DiemYeuHon)
+                            {
+                                <span class="nhan nhan-canh-bao">@d</span>
+                            }
+                        </div>
+                    }
+
+                    <div class="the-gia">
+                        <span class="gia-tri">@GiaoDienHelper.DinhDangGiaTri(t.CauThu.GiaTriHienTai)</span>
+                        <span class="mo">@t.CauThu.GiaiDau</span>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+}

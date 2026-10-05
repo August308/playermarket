@@ -1,0 +1,80 @@
+@model CauThuTomTatDto
+@inject PlayerTransfer.Web.Services.TheoDoiCuaToi TheoDoiCuaToi
+@{
+    var dangTheoDoi = await TheoDoiCuaToi.DangTheoDoiAsync(Model.MaCauThu);
+    var quayLai = Context.Request.Path + Context.Request.QueryString;
+    var duongDanCo = GiaoDienHelper.DuongDanCo(Model.MaISO);
+    var mau = GiaoDienHelper.MauTheoTen(Model.HoTen);
+    var bac = GiaoDienHelper.BacChiSo(Model.ChiSoTongHop);
+}
+@* Thẻ trong lưới không chạy số đếm: 20 thẻ cùng đếm từ 0 làm rối mắt và lấn át dữ liệu.
+   Hiệu ứng đếm chỉ giữ ở khối hero và banner hồ sơ. *@
+<div class="the-khung-3d hien-dan" draggable="true" title="Kéo thả vào giỏ so sánh">
+    <article class="the the-3d" data-bac="@bac">
+        <div class="the-dau">
+            @if (!string.IsNullOrWhiteSpace(Model.AnhDaiDien))
+            {
+                <img class="anh-cau-thu anh-bay" style="--ten-bay:ct-@Model.MaCauThu" src="@Model.AnhDaiDien" alt="" loading="lazy"
+                     data-chu="@GiaoDienHelper.ChuCaiDau(Model.HoTen)" data-mau="@mau" />
+            }
+            else
+            {
+                <div class="anh-cau-thu anh-bay" style="--ten-bay:ct-@Model.MaCauThu;background:linear-gradient(140deg, @mau, color-mix(in srgb, @mau 55%, #000))">
+                    @GiaoDienHelper.ChuCaiDau(Model.HoTen)
+                </div>
+            }
+
+            <div style="min-width:0;flex:1">
+                <a class="the-ten" asp-controller="Players" asp-action="ChiTiet" asp-route-id="@Model.MaCauThu">@Model.HoTen</a>
+                <div class="dong-meta">
+                    <span class="nhan nhan-vi-tri">@Model.ViTriVietTat</span>
+                    <span>@Model.Tuoi tuổi</span>
+                    @if (!string.IsNullOrEmpty(duongDanCo))
+                    {
+                        <img class="co" src="@duongDanCo" alt="@Model.QuocTich" title="@Model.QuocTich" loading="lazy" />
+                    }
+                </div>
+            </div>
+
+            <div class="chi-so @bac" title="@GiaoDienHelper.ChuThichChiSo(Model.ChiSoTongHop)">
+                @if (Model.ChiSoTongHop > 0)
+                {
+                    <span>@Model.ChiSoTongHop</span>
+                }
+                else
+                {
+                    <span>–</span>
+                }
+            </div>
+        </div>
+
+        <div class="dong-meta">
+            <span class="huy-hieu" style="background:@GiaoDienHelper.MauTheoTen(Model.CauLacBo ?? "")">
+                @GiaoDienHelper.ChuCaiDau(Model.CauLacBo, 1)
+            </span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@Model.CauLacBo</span>
+            @if (Model.DangChanThuong)
+            {
+                <span class="nhan nhan-canh-bao" title="Đang chấn thương">🩹</span>
+            }
+        </div>
+
+        <div class="the-gia">
+            <span class="gia-tri">
+                @GiaoDienHelper.DinhDangGiaTri(Model.GiaTriHienTai)
+            </span>
+            <span class="mo">@Model.GiaiDau</span>
+        </div>
+
+        <div class="the-nut">
+            <form asp-controller="Compare" asp-action="Them" method="post" style="flex:1"
+                  hx-post="@Url.Action("Them", "Compare")" hx-swap="none">
+                <input type="hidden" name="maCauThu" value="@Model.MaCauThu" />
+                <input type="hidden" name="quayLai" value="@quayLai" />
+                <button type="submit" class="nut nut-nho" style="width:100%">＋ So sánh</button>
+            </form>
+
+            @await Html.PartialAsync("_NutTheoDoi", (Model.MaCauThu, dangTheoDoi))
+        </div>
+    </article>
+</div>

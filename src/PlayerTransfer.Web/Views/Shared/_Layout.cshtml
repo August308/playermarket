@@ -1,0 +1,284 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery ChongGiaMao
+@{
+    var hoTen = Context.Session.GetString("HoTen");
+    var vaiTro = Context.Session.GetString("VaiTro");
+    var daDangNhap = !string.IsNullOrEmpty(Context.Session.GetString("AccessToken"));
+    var gio = Context.Session.GetString("GioSoSanh");
+    var soTrongGio = string.IsNullOrEmpty(gio) ? 0 : gio.Split(',', StringSplitOptions.RemoveEmptyEntries).Length;
+    var dk = ViewContext.RouteData.Values["controller"]?.ToString();
+
+    // Khách vẫn thấy các mục dành cho Thành viên (để biết hệ thống có gì), nhưng được báo trước
+    // bằng ổ khóa thay vì bất ngờ bị chuyển sang trang đăng nhập.
+    var khoa = daDangNhap ? Html.Raw("") : Html.Raw("<span class=\"khoa\" title=\"Cần đăng nhập\" aria-label=\"Cần đăng nhập\">🔒</span>");
+}
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f7a3d" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#060d08" media="(prefers-color-scheme: dark)" />
+    <title>@ViewData["Title"] · PlayerMarket</title>
+
+    @* Mã chống giả mạo yêu cầu (CSRF) cho các lệnh POST gửi bằng JavaScript/HTMX. *@
+    <meta name="pm-csrf" content="@ChongGiaMao.GetAndStoreTokens(Context).RequestToken" />
+    <link rel="manifest" href="~/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="~/icon-192.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&display=swap" />
+
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/chuyen-dong.css" asp-append-version="true" />
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/chuyen-dong.js" asp-append-version="true"></script>
+    <script src="~/js/bang-lenh.js" asp-append-version="true" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js" defer></script>
+
+    @await RenderSectionAsync("Head", required: false)
+</head>
+<body data-dang-nhap="@(daDangNhap ? "1" : "0")">
+
+<div id="thanh-tien-trinh" class="thanh-tien-trinh"></div>
+
+<header class="dieu-huong">
+    <div class="khung">
+        <a class="hieu" asp-controller="Home" asp-action="Index">
+            <span class="hieu-bieu-tuong">⚽</span>
+            <span>Player<span style="color:var(--chinh)">Market</span></span>
+        </a>
+
+        <nav class="menu" id="menuChinh" aria-label="Điều hướng chính">
+            <a asp-controller="Players" asp-action="Index" class="@(dk == "Players" ? "chon" : "")">Khám phá</a>
+            <a asp-controller="Compare" asp-action="Index" class="@(dk == "Compare" ? "chon" : "")">So sánh</a>
+
+            @* 14 mục không vừa một hàng ngang, nên gom thành ba nhóm đổ xuống. *@
+            <div class="nhom-menu @(dk == "Analytics" || dk == "Statistics" || dk == "Scouting" ? "chon" : "")">
+                <button type="button" aria-haspopup="true">Phân tích</button>
+                <div class="the-tha">
+                    <a asp-controller="Analytics" asp-action="Index"><span class="bt">📈</span>Mô hình định giá@(khoa)</a>
+                    <a asp-controller="Analytics" asp-action="DoiChieu"><span class="bt">🔬</span>Đối chiếu hai nguồn@(khoa)</a>
+                    <a asp-controller="Analytics" asp-action="BienDong"><span class="bt">📉</span>Biến động giá@(khoa)</a>
+                    <div class="ngan"></div>
+                    <a asp-controller="Analytics" asp-action="Mang"><span class="bt">🕸️</span>Mạng chuyển nhượng@(khoa)</a>
+                    <a asp-controller="Analytics" asp-action="CauLacBo"><span class="bt">💰</span>Cân đối câu lạc bộ@(khoa)</a>
+                    <div class="ngan"></div>
+                    <a asp-controller="Scouting" asp-action="Index"><span class="bt">🔭</span>Tuyển trạch@(khoa)</a>
+                    <a asp-controller="Statistics" asp-action="Index"><span class="bt">📊</span>Thống kê thị trường@(khoa)</a>
+                    <div class="ngan"></div>
+                    @* "Hỏi bằng tiếng Việt" là công cụ phân tích, không phải dữ liệu cá nhân — trước đây nằm nhầm ở nhóm "Của tôi". *@
+                    <a asp-controller="Analytics" asp-action="Hoi"><span class="bt">💬</span>Hỏi bằng tiếng Việt</a>
+                </div>
+            </div>
+
+            <div class="nhom-menu @(dk == "Squad" || dk == "Watchlist" || dk == "Game" ? "chon" : "")">
+                <button type="button" aria-haspopup="true">Của tôi</button>
+                <div class="the-tha">
+                    <a asp-controller="Squad" asp-action="Index"><span class="bt">🧩</span>Đội hình ảo@(khoa)</a>
+                    <a asp-controller="Watchlist" asp-action="Index">
+                        <span class="bt">⭐</span>Danh sách theo dõi@(khoa)
+                        <span id="huyHieuCanhBao" class="nhan nhan-canh-bao" style="display:none;margin-left:auto"></span>
+                    </a>
+                    <div class="ngan"></div>
+                    <a asp-controller="Game" asp-action="Index"><span class="bt">🎯</span>Trò chơi đoán giá</a>
+                </div>
+            </div>
+
+            @if (vaiTro == "QuanTriVien")
+            {
+                <div class="nhom-menu @(dk == "Admin" || dk == "Dataset" || dk == "Reports" ? "chon" : "")">
+                    <button type="button" aria-haspopup="true">Quản trị</button>
+                    <div class="the-tha">
+                        <a asp-controller="Admin" asp-action="CauThu"><span class="bt">🗂️</span>Quản lý cầu thủ</a>
+                        <div class="ngan"></div>
+                        <a asp-controller="Dataset" asp-action="Index"><span class="bt">📦</span>Nạp bộ dữ liệu</a>
+                        <a asp-controller="Reports" asp-action="Nhap"><span class="bt">📥</span>Nhập Excel</a>
+                        <div class="ngan"></div>
+                        <a asp-controller="Analytics" asp-action="KiemChung"><span class="bt">🧪</span>Kiểm chứng dữ liệu</a>
+                    </div>
+                </div>
+            }
+        </nav>
+
+        <form class="tim-kiem" asp-controller="Players" asp-action="TimKiem" method="get" autocomplete="off" role="search">
+            <span class="bieu-tuong">🔍</span>
+            <input type="search" id="oTimKiem" name="tuKhoa" placeholder="Tìm cầu thủ hoặc câu lạc bộ…" aria-label="Tìm cầu thủ hoặc câu lạc bộ" />
+            <div class="goi-y" id="hopGoiY"></div>
+        </form>
+
+        <div class="tai-khoan">
+            @* Chỉ hiện trên màn hình hẹp: mở toàn bộ menu (Phân tích, Của tôi, Quản trị). Trước đây điện thoại
+               chỉ có 5 mục ở thanh dưới nên không có đường nào tới các trang phân tích hay danh sách theo dõi. *@
+            <button type="button" class="nut nut-vuong nut-nhe nut-menu" id="nutMenu"
+                    aria-label="Mở menu" aria-controls="menuChinh" aria-expanded="false">☰</button>
+            <button type="button" class="nut nut-nho nut-nhe nut-phim" id="nutBangLenh"
+                    title="Bảng lệnh: đi nhanh tới trang hoặc cầu thủ" aria-label="Mở bảng lệnh (Ctrl+K)"><kbd>Ctrl</kbd><kbd>K</kbd></button>
+            <button type="button" class="nut nut-vuong nut-nhe" id="nutGiaoDien" title="Đổi giao diện" aria-label="Đổi giao diện sáng/tối">🌙</button>
+            <button type="button" class="nut nut-vuong nut-nhe" id="nutTrinhChieu"
+                    title="Chế độ trình chiếu (phím P)" aria-label="Chế độ trình chiếu" aria-pressed="false">⤢</button>
+
+            @if (daDangNhap)
+            {
+                @* Ba mục tài khoản gom vào một thẻ thả dưới chữ cái đầu: khối bên phải
+                   luôn rộng cố định ~120px nên không còn tràn ngang ở màn hình hẹp. *@
+                <div class="nhom-menu nhom-tk">
+                    <button type="button" class="chu-cai" aria-haspopup="true" title="@hoTen">@GiaoDienHelper.ChuCaiDau(hoTen)</button>
+                    <div class="the-tha">
+                        <div class="ten-tk">@hoTen</div>
+                        <div class="ngan"></div>
+                        <a asp-controller="Account" asp-action="DoiMatKhau"><span class="bt">🔑</span>Đổi mật khẩu</a>
+                        <a asp-controller="Account" asp-action="Phien"><span class="bt">💻</span>Thiết bị đăng nhập</a>
+                        <div class="ngan"></div>
+                        <form asp-controller="Account" asp-action="DangXuat" method="post">
+                            @Html.AntiForgeryToken()
+                            <button type="submit"><span class="bt">🚪</span>Đăng xuất</button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <a class="nut nut-nho nut-nhe" asp-controller="Account" asp-action="DangNhap">Đăng nhập</a>
+                <a class="nut nut-nho nut-chinh" asp-controller="Account" asp-action="DangKy">Đăng ký</a>
+            }
+        </div>
+    </div>
+</header>
+
+<main class="khung">
+    @if (TempData["ThongBao"] != null)
+    {
+        <div class="bao bao-ok hien-dan"><span>✓</span><span>@TempData["ThongBao"]</span></div>
+    }
+    @if (TempData["LoiThongBao"] != null)
+    {
+        <div class="bao bao-loi hien-dan"><span>!</span><span>@TempData["LoiThongBao"]</span></div>
+    }
+
+    @RenderBody()
+</main>
+
+<!-- Giỏ so sánh nổi -->
+<div class="gio" id="gioSoSanh" style="@(soTrongGio > 0 && dk != "Compare" ? "" : "display:none")">
+    <span>Giỏ so sánh <strong id="soTrongGio">@soTrongGio</strong>/4</span>
+    <button type="button" class="nut nut-nho nut-nhe" id="nutMoNganKeo">Xem giỏ</button>
+    <a class="nut nut-nho" asp-controller="Compare" asp-action="Index">So sánh</a>
+    <form asp-controller="Compare" asp-action="XoaHet" method="post">
+        <button type="submit" class="nut nut-nho nut-nhe">Xóa</button>
+    </form>
+</div>
+
+<!-- B1. Bảng lệnh -->
+<div class="bang-lenh-nen" id="bangLenhNen">
+    <div class="bang-lenh">
+        <input type="text" id="oBangLenh" placeholder="Tìm cầu thủ, trang, lối tắt…" autocomplete="off" />
+        <div class="lenh-ds" id="dsBangLenh"></div>
+        <div style="display:flex;gap:12px;padding:8px 14px;border-top:1px solid var(--vien)"
+             class="mo">
+            <span><span class="phim">↑↓</span> di chuyển</span>
+            <span><span class="phim">Enter</span> mở</span>
+            <span><span class="phim">Esc</span> đóng</span>
+        </div>
+    </div>
+</div>
+
+<!-- B7. Thanh điều hướng dưới cho điện thoại -->
+<nav class="thanh-duoi">
+    <a asp-controller="Home" asp-action="Index" class="@(dk == "Home" ? "chon" : "")"><span class="bt">🏠</span>Trang chủ</a>
+    <a asp-controller="Players" asp-action="Index" class="@(dk == "Players" ? "chon" : "")"><span class="bt">🔎</span>Khám phá</a>
+    <a asp-controller="Compare" asp-action="Index" class="@(dk == "Compare" ? "chon" : "")"><span class="bt">⚖️</span>So sánh</a>
+    <a asp-controller="Statistics" asp-action="Index" class="@(dk == "Statistics" ? "chon" : "")"><span class="bt">📊</span>Thống kê@(khoa)</a>
+    <a asp-controller="Squad" asp-action="Index" class="@(dk == "Squad" ? "chon" : "")"><span class="bt">🧩</span>Đội hình@(khoa)</a>
+</nav>
+
+<!-- B3. Ngăn kéo giỏ so sánh -->
+<div class="ngan-keo-nen" id="nganKeoNen">
+    <aside class="ngan-keo" id="nganKeo">
+        <div class="khoi-dau" style="margin:0 0 12px">
+            <h3>Giỏ so sánh</h3>
+            <button type="button" class="nut nut-nho nut-nhe" id="nutDongNganKeo">✕</button>
+        </div>
+        <p class="mo" style="margin:-6px 0 10px">Kéo thẻ cầu thủ thả vào đây để thêm nhanh.</p>
+        <div id="noiDungGio"></div>
+    </aside>
+</div>
+
+<div class="khay-toast" id="khayToast"></div>
+
+<footer class="chan">
+    <div class="khung">
+        PlayerMarket · Đồ án Quản lý dự án phần mềm — Hệ thống theo dõi giá trị chuyển nhượng cầu thủ.<br />
+        <button type="button" class="nut nut-nho nut-nhe" id="nutChuyenDong" style="margin-top:8px">Tắt hiệu ứng chuyển động</button>
+    </div>
+</footer>
+
+<script>
+    // Đăng ký service worker cho chế độ ngoại tuyến (B8).
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js').catch(function () { });
+        });
+    }
+
+    // Nút bật/tắt chuyển động
+    document.addEventListener('DOMContentLoaded', function () {
+        var nut = document.getElementById('nutChuyenDong');
+        if (!nut) return;
+
+        function capNhatNhan() {
+            nut.textContent = window.PMChuyenDong.dangTat()
+                ? 'Bật hiệu ứng chuyển động' : 'Tắt hiệu ứng chuyển động';
+        }
+
+        capNhatNhan();
+
+        nut.addEventListener('click', function () {
+            if (window.PMChuyenDong.dangTat()) window.PMChuyenDong.bat();
+            else window.PMChuyenDong.tat();
+            capNhatNhan();
+            window.PMKhoiTaoHieuUng(document);
+        });
+    });
+
+    // Thanh tiến trình do PMTienTrinh trong chuyen-dong.js đảm nhiệm.
+
+    document.addEventListener('pmToast', function (e) {
+        window.PMToast(e.detail.noiDung, e.detail.loai);
+    });
+
+    document.addEventListener('pmGioSoSanh', function (e) {
+        var gio = document.getElementById('gioSoSanh');
+        var so = document.getElementById('soTrongGio');
+        if (!gio || !so) return;
+
+        so.textContent = e.detail.so;
+        gio.style.display = e.detail.so > 0 ? '' : 'none';
+    });
+</script>
+
+@* D1 — kênh thời gian thực: nhận cảnh báo giá và thông báo đồng bộ ngay khi xảy ra.
+   Trình duyệt nối THẲNG tới API, nên chỉ bật được khi API có địa chỉ công khai. Khi triển khai gộp
+   một dịch vụ (API chỉ nghe trong nội bộ container) thì đặt Realtime:Tat = true để không tải gì cả.
+   Realtime:DiaChiApi cho phép chỉ định địa chỉ công khai của API nếu khác ApiBaseUrl. *@
+@{
+    var tatRealtime = CauHinh.GetValue("Realtime:Tat", false);
+    var diaChiApiCongKhai = (CauHinh["Realtime:DiaChiApi"] ?? CauHinh["ApiBaseUrl"])?.TrimEnd('/');
+}
+@if (!tatRealtime && !string.IsNullOrEmpty(diaChiApiCongKhai))
+{
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="~/js/realtime.js" asp-append-version="true"></script>
+    <script>
+        window.PMRealtime && window.PMRealtime.khoiTao({
+            diaChiHub: '@(diaChiApiCongKhai)/hubs/thongbao',
+            daDangNhap: @(daDangNhap ? "true" : "false")
+        });
+    </script>
+}
+
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

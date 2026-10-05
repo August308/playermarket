@@ -1,0 +1,44 @@
+# Triển khai lên Render (hoặc bất kỳ nền tảng nào chỉ cho MỘT container công khai):
+# API và giao diện chạy chung một container. Giao diện nghe cổng công khai ($PORT),
+# API chỉ nghe nội bộ ở 127.0.0.1:8081. Xem README mục "Triển khai lên Render".
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Chép riêng tệp dự án trước để tận dụng bộ đệm tầng khi chỉ đổi mã nguồn.
+COPY PlayerTransfer.sln ./
+COPY src/PlayerTransfer.Domain/PlayerTransfer.Domain.csproj src/PlayerTransfer.Domain/
+COPY src/PlayerTransfer.Infrastructure/PlayerTransfer.Infrastructure.csproj src/PlayerTransfer.Infrastructure/
+COPY src/PlayerTransfer.Application/PlayerTransfer.Application.csproj src/PlayerTransfer.Application/
+COPY src/PlayerTransfer.Api/PlayerTransfer.Api.csproj src/PlayerTransfer.Api/
+COPY src/PlayerTransfer.Web/PlayerTransfer.Web.csproj src/PlayerTransfer.Web/
+RUN dotnet restore src/PlayerTransfer.Api/PlayerTransfer.Api.csproj && \
+    dotnet restore src/PlayerTransfer.Web/PlayerTransfer.Web.csproj
+
+COPY src/ src/
+RUN dotnet publish src/PlayerTransfer.Api/PlayerTransfer.Api.csproj -c Release -o /out/api --no-restore && \
+    dotnet publish src/PlayerTransfer.Web/PlayerTransfer.Web.csproj -c Release -o /out/web --no-restore
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+COPY --from=build /out/api ./api
+COPY --from=build /out/web ./web
+# Cơ sở dữ liệu SQLite ban đầu (2.851 cầu thủ từ bộ Transfermarkt). Đuôi .sqlite để không bị
+# .gitignore / .dockerignore (*.db) loại ra.
+COPY deploy/du-lieu-khoi-tao.sqlite ./khoi-tao/playertransfer.db
+COPY deploy/khoi-dong.sh ./khoi-dong.sh
+
+# sed: bỏ ký tự xuống dòng kiểu Windows nếu Git trên máy đã đổi LF thành CRLF.
+RUN sed -i 's/\r$//' /app/khoi-dong.sh && chmod +x /app/khoi-dong.sh && \
+    mkdir -p /app/dulieu /app/api/logs /app/web/logs /app/web/keys && \
+    useradd -m -u 1001 playertransfer && \
+    chown -R playertransfer:playertransfer /app
+USER playertransfer
+
+ENV ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_gcServer=0 \
+    DOTNET_GCConserveMemory=7 \
+    DOTNET_TieredPGO=0
+
+EXPOSE 10000
+ENTRYPOINT ["/app/khoi-dong.sh"]

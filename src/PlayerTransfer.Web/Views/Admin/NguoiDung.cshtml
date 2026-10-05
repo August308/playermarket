@@ -1,0 +1,39 @@
+@model TrangDuLieu<System.Text.Json.JsonElement>
+@{ ViewData["Title"] = "Quản lý người dùng"; }
+
+<h1>Quản lý người dùng</h1>
+
+<div class="khoi">
+    <table>
+        <thead>
+        <tr><th class="giua">Mã</th><th>Email</th><th>Họ tên</th><th>Vai trò</th>
+            <th>Trạng thái</th><th>Ngày tạo</th><th class="giua">Thao tác</th></tr>
+        </thead>
+        <tbody>
+        @foreach (var nd in Model.DanhSach)
+        {
+            var ma = nd.GetProperty("maNguoiDung").GetInt32();
+            var trangThai = nd.GetProperty("trangThai").GetString();
+            <tr>
+                <td class="giua">@ma</td>
+                <td>@nd.GetProperty("email").GetString()</td>
+                <td>@nd.GetProperty("hoTen").GetString()</td>
+                <td>@nd.GetProperty("vaiTro").GetString()</td>
+                <td><span class="nhan">@trangThai</span></td>
+                <td>@DinhDangSo.GioVN(nd.GetProperty("ngayTao").GetDateTime()).ToString("dd/MM/yyyy")</td>
+                <td class="giua">
+                    <form asp-controller="Admin" asp-action="DoiTrangThai" method="post" style="display:flex; gap:6px; justify-content:center">
+                        <input type="hidden" name="id" value="@ma" />
+                        <select class="o-nhap" name="trangThai">
+                            <option value="DaKichHoat" selected="@(trangThai == "DaKichHoat")">Đã kích hoạt</option>
+                            <option value="BiKhoa" selected="@(trangThai == "BiKhoa")">Bị khóa</option>
+                            <option value="ChuaKichHoat" selected="@(trangThai == "ChuaKichHoat")">Chưa kích hoạt</option>
+                        </select>
+                        <button type="submit" class="nut nut-nho">Lưu</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,18 @@
+@model (int MaCauThu, bool DangTheoDoi)
+@{
+    var quayLai = Context.Request.Path + Context.Request.QueryString;
+    var hanhDong = Model.DangTheoDoi ? "Bo" : "Them";
+}
+<form asp-controller="Watchlist" asp-action="@hanhDong" method="post"
+      hx-post="@Url.Action(hanhDong, "Watchlist")"
+      hx-swap="outerHTML"
+      hx-target="this">
+    <input type="hidden" name="maCauThu" value="@Model.MaCauThu" />
+    <input type="hidden" name="quayLai" value="@quayLai" />
+    <button type="submit" class="nut nut-nho nut-vuong nut-theo-doi @(Model.DangTheoDoi ? "dang" : "")"
+            title="@(Model.DangTheoDoi ? "Bỏ theo dõi" : "Thêm vào danh sách theo dõi")"
+            aria-pressed="@(Model.DangTheoDoi ? "true" : "false")"
+            aria-label="@(Model.DangTheoDoi ? "Bỏ theo dõi" : "Theo dõi cầu thủ")">
+        @(Model.DangTheoDoi ? "★" : "☆")
+    </button>
+</form>

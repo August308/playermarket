@@ -1,0 +1,60 @@
+# E10 — chạy cả hệ thống bằng một lệnh: docker compose up --build
+# Khóa API bóng đá lấy từ tệp .env cùng thư mục (xem .env.example), không ghi vào đây.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/PlayerTransfer.Api/Dockerfile
+    container_name: playertransfer-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      Database__Provider: Sqlite
+      ConnectionStrings__Default: "Data Source=/app/dulieu/playertransfer.db"
+      Jwt__Key: "${JWT_KEY:?Hay dat JWT_KEY trong tep .env}"
+      FootballApi__Key: "${FOOTBALL_API_KEY:-}"
+      FootballApi__BatDongBoDinhKy: "${FOOTBALL_SYNC:-false}"
+      Seed__TongCauThu: "${SEED_TONG_CAU_THU:-2000}"
+      Web__BaseUrl: "http://localhost:8081"
+      Cors__Origins__0: "http://localhost:8081"
+      # Tin tiêu đề X-Forwarded-For do container web gửi sang (mạng nội bộ Docker),
+      # để giới hạn tần suất và danh sách thiết bị dùng IP thật của người dùng.
+      ForwardedHeaders__MangTinCay__0: "172.16.0.0/12"
+      ForwardedHeaders__MangTinCay__1: "192.168.0.0/16"
+    volumes:
+      - dulieu-api:/app/dulieu
+      - ./logs/api:/app/logs
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/api/lookup/positions || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  web:
+    build:
+      context: .
+      dockerfile: src/PlayerTransfer.Web/Dockerfile
+    container_name: playertransfer-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ApiBaseUrl: "http://api:8080/"
+    volumes:
+      - ./logs/web:/app/logs
+      # Khóa Data Protection: giữ qua các lần dựng lại container để cookie đăng nhập không mất hiệu lực.
+      - dulieu-web:/app/keys
+    ports:
+      - "8081:8080"
+
+volumes:
+  dulieu-api:
+  dulieu-web:

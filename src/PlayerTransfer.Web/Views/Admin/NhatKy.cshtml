@@ -1,0 +1,29 @@
+@model List<System.Text.Json.JsonElement>
+@{ ViewData["Title"] = "Nhật ký thao tác"; }
+
+<h1>Nhật ký thao tác quản trị</h1>
+
+<div class="khoi">
+    @if (Model.Any())
+    {
+        <table>
+            <thead><tr><th>Thời điểm</th><th class="giua">Người dùng</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
+            <tbody>
+            @foreach (var nk in Model)
+            {
+                <tr>
+                    <td>@DinhDangSo.NgayGioVN(nk.GetProperty("thoiDiem").GetDateTime())</td>
+                    <td class="giua">@(nk.GetProperty("maNguoiDung").ValueKind == System.Text.Json.JsonValueKind.Null ? "—" : nk.GetProperty("maNguoiDung").GetInt32().ToString())</td>
+                    <td>@nk.GetProperty("hanhDong").GetString()</td>
+                    <td>@nk.GetProperty("doiTuong").GetString()</td>
+                    <td>@nk.GetProperty("chiTiet").GetString()</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="rong">Chưa có thao tác nào được ghi nhận.</div>
+    }
+</div>

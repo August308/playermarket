@@ -1,0 +1,89 @@
+@model HoiDapVm
+@{
+    ViewData["Title"] = "Hỏi bằng câu tiếng Việt";
+    var hieu = Model.KetQuaHieu;
+}
+
+<div style="margin:22px 0 18px">
+    <h1>Hỏi bằng câu tiếng Việt</h1>
+    <p class="phu" style="margin:4px 0 0">
+        Gõ điều kiện bằng lời thường, hệ thống dịch sang bộ lọc và hiện lại đúng những gì nó hiểu được.
+    </p>
+</div>
+
+@if (ViewBag.Loi != null)
+{
+    <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+}
+
+<form method="get" class="khoi">
+    <div class="truong">
+        <label for="q">Câu hỏi</label>
+        <input class="o-nhap" id="q" name="q" value="@Model.CauHoi" autocomplete="off"
+               placeholder="tiền vệ dưới 23 tuổi giá dưới 20 triệu ở Ngoại hạng Anh" />
+    </div>
+    <div class="the-nut" style="margin-top:10px">
+        <button type="submit" class="nut nut-chinh">Tìm</button>
+    </div>
+
+    <p class="mo" style="font-size:.85rem;margin-top:12px;line-height:1.8">
+        Ví dụ thử:
+        <a href="?q=tiền vệ dưới 23 tuổi giá dưới 20 triệu">tiền vệ dưới 23 tuổi giá dưới 20 triệu</a> ·
+        <a href="?q=hậu vệ Ngoại hạng Anh sắp hết hợp đồng">hậu vệ Ngoại hạng Anh sắp hết hợp đồng</a> ·
+        <a href="?q=tiền đạo Brazil thuận chân trái giá từ 10 đến 50 triệu">tiền đạo Brazil thuận chân trái giá từ 10 đến 50 triệu</a> ·
+        <a href="?q=trung vệ cao 190 hay nhất">trung vệ cao 190 hay nhất</a>
+    </p>
+</form>
+
+@if (hieu != null)
+{
+    <div class="khoi hien-dan">
+        <div class="khoi-dau"><h3>Hệ thống hiểu câu hỏi thế nào</h3></div>
+
+        @if (hieu.DaHieu.Count > 0)
+        {
+            <div class="chips">
+                @foreach (var d in hieu.DaHieu)
+                {
+                    <span class="chip">@d</span>
+                }
+            </div>
+        }
+
+        @if (hieu.ChuaHieu.Count > 0)
+        {
+            <p class="mo" style="margin-top:10px">
+                @string.Join(" ", hieu.ChuaHieu)
+            </p>
+        }
+
+        <p class="mo" style="font-size:.85rem;margin-top:12px;line-height:1.6">
+            Phân tích theo luật chứ không gọi mô hình ngôn ngữ bên ngoài, nên chạy được
+            ngoại tuyến và cho kết quả giống nhau ở mọi lần chạy. Nếu có điều kiện chưa nhận ra,
+            hãy dùng bộ lọc ở trang Khám phá.
+        </p>
+    </div>
+
+    @if (Model.KetQuaTim != null && Model.KetQuaTim.DanhSach.Count > 0)
+    {
+        <div class="khoi">
+            <div class="khoi-dau">
+                <h3>Kết quả</h3>
+                <span class="mo">@DinhDangSo.So(Model.KetQuaTim.TongSo) cầu thủ khớp</span>
+            </div>
+            <div class="luoi">
+                @foreach (var ct in Model.KetQuaTim.DanhSach)
+                {
+                    @await Html.PartialAsync("_CauThuCard", ct)
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="khoi rong">
+            <div class="rong-bieu-tuong">🔍</div>
+            <p class="mo">Không có cầu thủ nào khớp với các điều kiện trên.</p>
+        </div>
+    }
+}

@@ -1,0 +1,48 @@
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment MoiTruong
+@using Microsoft.Extensions.Hosting
+@model DangNhapDto
+@{ ViewData["Title"] = "Đăng nhập"; }
+
+<div class="khoi form-khung">
+    <h1 style="margin-top:0">Đăng nhập</h1>
+
+    <form method="post" asp-controller="Account" asp-action="DangNhap" asp-route-returnUrl="@ViewBag.ReturnUrl">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="All" class="bao bao-loi" style="display:@(ViewData.ModelState.IsValid ? "none" : "block")"></div>
+
+        <div class="truong">
+            <label asp-for="Email">Email</label>
+            <input class="o-nhap" asp-for="Email" type="email" placeholder="ban@example.com" />
+            <span asp-validation-for="Email" class="loi-truong"></span>
+        </div>
+
+        <div class="truong">
+            <label asp-for="MatKhau">Mật khẩu</label>
+            <input class="o-nhap" asp-for="MatKhau" type="password" />
+            <span asp-validation-for="MatKhau" class="loi-truong"></span>
+        </div>
+
+        <div class="truong">
+            <label style="font-weight:400">
+                <input asp-for="GhiNhoDangNhap" type="checkbox" /> Ghi nhớ đăng nhập (30 ngày)
+            </label>
+        </div>
+
+        <button type="submit" class="nut nut-chinh" style="width:100%">Đăng nhập</button>
+    </form>
+
+    <p class="mo" style="margin-bottom:4px">
+        <a asp-controller="Account" asp-action="QuenMatKhau">Quên mật khẩu?</a>
+    </p>
+    <p style="margin-bottom:0; font-size:14px">
+        Chưa có tài khoản? <a asp-controller="Account" asp-action="DangKy">Đăng ký ngay</a>
+    </p>
+    @* Tài khoản dùng thử chỉ hiện khi chạy ở môi trường phát triển — không lộ mật khẩu quản trị khi triển khai thật. *@
+    @if (MoiTruong.IsDevelopment())
+    {
+        <p class="mo" style="margin:6px 0 0">
+            Tài khoản dùng thử: <code>member@playertransfer.local</code> / <code>Member@123</code> —
+            quản trị: <code>admin@playertransfer.local</code> / <code>Admin@123</code>
+        </p>
+    }
+</div>

@@ -1,0 +1,56 @@
+@model PlayerTransfer.Application.Dtos.DoiChieuNguonDto
+@{
+    ViewData["Title"] = "Đối chiếu giá thật và giá mô hình";
+}
+
+<div style="margin:22px 0 18px">
+    <h1>Đối chiếu hai nguồn định giá</h1>
+    <p class="phu" style="margin:4px 0 0">
+        So giá trị thật của Transfermarkt với giá trị do mô hình của hệ thống ước lượng,
+        tách theo giải đấu, vị trí, nhóm tuổi và khoảng giá — để thấy mô hình sai ở đâu nhiều nhất.
+    </p>
+</div>
+
+@if (ViewBag.Loi != null)
+{
+    <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+}
+
+@if (Model.ChiSo != null)
+{
+    <div class="khoi hien-dan">
+        <div class="khoi-dau"><h3>Sai số tổng thể</h3></div>
+        <div class="luoi-tin">
+            <div class="o-tin"><div class="nhan-o">MAE</div><div class="gia-o">@DinhDangSo.TrieuEuro(Model.ChiSo.MAE)</div></div>
+            <div class="o-tin"><div class="nhan-o">MAPE</div><div class="gia-o">@DinhDangSo.So(Model.ChiSo.MAPE, 1) %</div></div>
+            <div class="o-tin"><div class="nhan-o">R²</div><div class="gia-o">@DinhDangSo.So(Model.ChiSo.R2, 4)</div></div>
+            <div class="o-tin"><div class="nhan-o">Số cầu thủ</div><div class="gia-o">@DinhDangSo.So(Model.ChiSo.TongMau)</div></div>
+        </div>
+    </div>
+}
+
+<div class="khoi hien-dan">
+    <div class="khoi-dau"><h3>Theo giải đấu</h3></div>
+    @await Html.PartialAsync("_BangDoiChieu", Model.TheoGiaiDau)
+</div>
+
+<div class="khoi hien-dan">
+    <div class="khoi-dau"><h3>Theo vị trí</h3></div>
+    @await Html.PartialAsync("_BangDoiChieu", Model.TheoViTri)
+</div>
+
+<div class="khoi hien-dan">
+    <div class="khoi-dau"><h3>Theo nhóm tuổi</h3></div>
+    @await Html.PartialAsync("_BangDoiChieu", Model.TheoNhomTuoi)
+</div>
+
+<div class="khoi hien-dan">
+    <div class="khoi-dau"><h3>Theo khoảng giá</h3></div>
+    @await Html.PartialAsync("_BangDoiChieu", Model.TheoKhoangGia)
+</div>
+
+<p class="mo" style="margin-top:14px;line-height:1.6">
+    Sai số phần trăm thường cao nhất ở nhóm giá thấp — chênh 1 triệu € trên một cầu thủ
+    giá 2 triệu là 50%, còn trên cầu thủ giá 100 triệu chỉ là 1%. Khi viết báo cáo nên nêu
+    cả hai chỉ số tuyệt đối và tương đối để không bị hiểu lầm.
+</p>

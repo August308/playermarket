@@ -1,0 +1,38 @@
+@model List<CauThuTomTatDto>
+
+@if (!Model.Any())
+{
+    <div class="rong" style="padding:32px 12px">
+        <div class="rong-bieu-tuong">⚖️</div>
+        <p class="phu" style="margin:0">Giỏ trống. Kéo thẻ cầu thủ vào đây hoặc bấm "＋ So sánh".</p>
+    </div>
+}
+else
+{
+    @foreach (var ct in Model)
+    {
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--vien)">
+            @await Html.PartialAsync("_AnhCauThu", (ct.HoTen, ct.AnhDaiDien, 38))
+
+            <span style="flex:1;min-width:0">
+                <a asp-controller="Players" asp-action="ChiTiet" asp-route-id="@ct.MaCauThu"
+                   style="font-weight:600;display:block">@ct.HoTen</a>
+                <span class="mo">@ct.ViTriVietTat · @ct.CauLacBo · @GiaoDienHelper.DinhDangGiaTri(ct.GiaTriHienTai)</span>
+            </span>
+
+            <form asp-controller="Compare" asp-action="Bo" method="post"
+                  hx-post="@Url.Action("Bo", "Compare")" hx-target="#noiDungGio" hx-swap="innerHTML">
+                <input type="hidden" name="maCauThu" value="@ct.MaCauThu" />
+                <button type="submit" class="nut nut-nho nut-do" title="Bỏ khỏi giỏ">✕</button>
+            </form>
+        </div>
+    }
+
+    <div style="display:flex;gap:8px;margin-top:14px">
+        <a class="nut nut-chinh" style="flex:1;justify-content:center"
+           asp-controller="Compare" asp-action="Index">So sánh @Model.Count cầu thủ</a>
+        <form asp-controller="Compare" asp-action="XoaHet" method="post">
+            <button type="submit" class="nut nut-do">Xóa hết</button>
+        </form>
+    </div>
+}

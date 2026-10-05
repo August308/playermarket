@@ -1,0 +1,65 @@
+@model List<TheoDoiDto>
+@{ ViewData["Title"] = "Danh sách theo dõi"; }
+
+<h1>Danh sách theo dõi</h1>
+
+@if (!Model.Any())
+{
+    <div class="khoi rong">
+        <p>Bạn chưa theo dõi cầu thủ nào. Bấm biểu tượng ★ trên thẻ cầu thủ để thêm vào danh sách.</p>
+        <a class="nut nut-chinh" asp-controller="Players" asp-action="Index">Khám phá cầu thủ</a>
+    </div>
+}
+else
+{
+    <div class="khoi">
+        <table>
+            <thead>
+            <tr>
+                <th>Cầu thủ</th><th>CLB</th><th class="so">Giá trị (tr €)</th>
+                <th>Cảnh báo giá (dưới / trên, tr €)</th><th>Ghi chú</th><th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var td in Model)
+            {
+                <tr>
+                    <td>
+                        <a asp-controller="Players" asp-action="ChiTiet" asp-route-id="@td.CauThu.MaCauThu">@td.CauThu.HoTen</a>
+                        <div class="dong-meta">@td.CauThu.ViTriVietTat · @td.CauThu.Tuoi tuổi</div>
+                    </td>
+                    <td>@td.CauThu.CauLacBo</td>
+                    <td class="so">
+                        @DinhDangSo.SoGon(td.CauThu.GiaTriHienTai, 2)
+                        @if (td.DaVuotNguong)
+                        {
+                            <div class="nhan nhan-canh-bao">Đã vượt ngưỡng</div>
+                        }
+                    </td>
+                    <td>
+                        <form asp-controller="Watchlist" asp-action="CapNhatCanhBao" method="post"
+                              style="display:flex; gap:6px; align-items:center">
+                            <input type="hidden" name="maCauThu" value="@td.CauThu.MaCauThu" />
+                            <input class="o-nhap" type="number" step="0.1" min="0" name="nguongDuoi" placeholder="Dưới" style="width:92px"
+                                   title="Báo khi giá xuống tới mức này (triệu €)" aria-label="Ngưỡng dưới (triệu €)"
+                                   value="@td.NguongCanhBaoDuoi" />
+                            <input class="o-nhap" type="number" step="0.1" min="0" name="nguongTren" placeholder="Trên" style="width:92px"
+                                   title="Báo khi giá lên tới mức này (triệu €)" aria-label="Ngưỡng trên (triệu €)"
+                                   value="@td.NguongCanhBaoTren" />
+                            <input type="hidden" name="ghiChu" value="@td.GhiChu" />
+                            <button type="submit" class="nut nut-nho">Lưu</button>
+                        </form>
+                    </td>
+                    <td>@td.GhiChu</td>
+                    <td>
+                        <form asp-controller="Watchlist" asp-action="Bo" method="post" data-xac-nhan="Bỏ theo dõi @td.CauThu.HoTen?">
+                            <input type="hidden" name="maCauThu" value="@td.CauThu.MaCauThu" />
+                            <button type="submit" class="nut nut-nho nut-do">Bỏ</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

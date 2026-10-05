@@ -1,0 +1,185 @@
+@model KhamPhaVm
+@{
+    ViewData["Title"] = "Khám phá cầu thủ";
+    var bl = Model.BoLoc;
+    var tuoiTu = bl.TuoiTu ?? 16;
+    var tuoiDen = bl.TuoiDen ?? 45;
+    var giaTu = bl.GiaTriTu ?? 0;
+    var giaDen = bl.GiaTriDen ?? 250;
+}
+
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:22px 0 18px">
+    <div>
+        <h1>Khám phá cầu thủ</h1>
+        <p class="phu" style="margin:4px 0 0">Lọc theo giải đấu, vị trí, độ tuổi và khoảng giá trị — kết quả cập nhật ngay khi bạn chọn.</p>
+    </div>
+    @* E6 — xuất đúng danh sách đang lọc ra Excel. *@
+    <div class="the-nut">
+        <a class="nut nut-nho nut-nhe"
+           href="@Url.Action("CauThuExcel", "Reports")@(Context.Request.QueryString.HasValue ? Context.Request.QueryString.Value : "")">
+            ⬇ Xuất Excel
+        </a>
+        <a class="nut nut-nho nut-nhe" asp-controller="Reports" asp-action="ThiTruongPdf">
+            📄 Báo cáo PDF
+        </a>
+    </div>
+</div>
+
+<div class="bo-cuc">
+    <form class="khoi cot-loc" id="formLoc" method="get" asp-controller="Players" asp-action="Index">
+        <input type="hidden" name="Trang" value="@bl.Trang" />
+
+        <div class="khoi-dau" style="margin-bottom:6px">
+            <h3>Bộ lọc</h3>
+            <button type="button" class="nut nut-nho nut-nhe" id="nutXoaLoc">Xóa hết</button>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Từ khóa</div>
+            <input class="o-nhap" name="TuKhoa" value="@bl.TuKhoa" placeholder="Tên cầu thủ hoặc CLB…" />
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Giải đấu</div>
+            <div class="chips">
+                @foreach (var g in Model.GiaiDaus)
+                {
+                    var daChon = bl.MaGiaiDaus.Contains(g.Ma);
+                    <label class="chip @(daChon ? "chon" : "")">
+                        <input type="checkbox" name="MaGiaiDaus" value="@g.Ma" checked="@daChon" hidden />
+                        @g.Ten
+                    </label>
+                }
+            </div>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Vị trí thi đấu</div>
+            <div class="chips">
+                @foreach (var v in Model.ViTris)
+                {
+                    var daChon = bl.MaViTris.Contains(v.Ma);
+                    <label class="chip @(daChon ? "chon" : "")" title="@v.Ten">
+                        <input type="checkbox" name="MaViTris" value="@v.Ma" checked="@daChon" hidden />
+                        @v.ThongTinThem
+                    </label>
+                }
+            </div>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">
+                <span>Câu lạc bộ</span>
+                @if (bl.MaCLBs.Any())
+                {
+                    <span class="nhan nhan-tot">@bl.MaCLBs.Count</span>
+                }
+            </div>
+            <input class="o-nhap o-tim-trong-nhom" data-hop="hopCLB" placeholder="Tìm câu lạc bộ…" />
+            <div class="hop-chon" id="hopCLB">
+                @foreach (var c in Model.CauLacBos)
+                {
+                    <label class="dong-chon" data-ten="@c.Ten">
+                        <input type="checkbox" name="MaCLBs" value="@c.Ma" checked="@bl.MaCLBs.Contains(c.Ma)" />
+                        <span style="flex:1">@c.Ten</span>
+                        <span class="mo">@c.ThongTinThem</span>
+                    </label>
+                }
+            </div>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">
+                <span>Quốc tịch</span>
+                @if (bl.MaQuocGias.Any())
+                {
+                    <span class="nhan nhan-tot">@bl.MaQuocGias.Count</span>
+                }
+            </div>
+            <input class="o-nhap o-tim-trong-nhom" data-hop="hopQuocGia" placeholder="Tìm quốc gia…" />
+            <div class="hop-chon" id="hopQuocGia">
+                @foreach (var q in Model.QuocGias)
+                {
+                    var co = GiaoDienHelper.DuongDanCo(q.ThongTinThem, 20);
+                    <label class="dong-chon" data-ten="@q.Ten">
+                        <input type="checkbox" name="MaQuocGias" value="@q.Ma" checked="@bl.MaQuocGias.Contains(q.Ma)" />
+                        @if (!string.IsNullOrEmpty(co))
+                        {
+                            <img class="co" src="@co" alt="" loading="lazy" />
+                        }
+                        <span>@q.Ten</span>
+                    </label>
+                }
+            </div>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Độ tuổi</div>
+            <div class="truot">
+                <div class="truot-gia-tri" id="nhanTuoi">@tuoiTu — @tuoiDen</div>
+                <div class="truot-cap" data-nhan="nhanTuoi" data-don-vi="">
+                    <div class="truot-nen"></div>
+                    <div class="truot-phan"></div>
+                    <input type="range" class="truot-thap" name="TuoiTu" min="16" max="45" value="@tuoiTu" />
+                    <input type="range" class="truot-cao" name="TuoiDen" min="16" max="45" value="@tuoiDen" />
+                </div>
+            </div>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Giá trị thị trường</div>
+            <div class="truot">
+                <div class="truot-gia-tri" id="nhanGia">@giaTu tr € — @giaDen tr €</div>
+                <div class="truot-cap" data-nhan="nhanGia" data-don-vi=" tr €">
+                    <div class="truot-nen"></div>
+                    <div class="truot-phan"></div>
+                    <input type="range" class="truot-thap" name="GiaTriTu" min="0" max="250" step="5" value="@giaTu" />
+                    <input type="range" class="truot-cao" name="GiaTriDen" min="0" max="250" step="5" value="@giaDen" />
+                </div>
+            </div>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Chân thuận</div>
+            <select class="o-nhap" name="ChanThuan">
+                <option value="">Không lọc</option>
+                <option value="Phai" selected="@(bl.ChanThuan == "Phai")">Chân phải</option>
+                <option value="Trai" selected="@(bl.ChanThuan == "Trai")">Chân trái</option>
+                <option value="CaHai" selected="@(bl.ChanThuan == "CaHai")">Cả hai chân</option>
+            </select>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Lọc nhanh</div>
+            <label class="chuyen">
+                <input type="checkbox" name="SapHetHopDong" value="true" checked="@(bl.SapHetHopDong == true)" />
+                Hợp đồng còn dưới 1 năm
+            </label>
+            <label class="chuyen">
+                <input type="checkbox" name="CauThuTuDo" value="true" checked="@(bl.CauThuTuDo == true)" />
+                Cầu thủ tự do
+            </label>
+            <label class="chuyen">
+                <input type="checkbox" name="DangChanThuong" value="false" checked="@(bl.DangChanThuong == false)" />
+                Bỏ qua cầu thủ đang chấn thương
+                <span class="mo" style="display:block;font-size:12px">Chỉ áp dụng cho cầu thủ đã có dữ liệu chấn thương</span>
+            </label>
+        </div>
+
+        <div class="nhom">
+            <div class="nhom-ten">Sắp xếp</div>
+            <select class="o-nhap" name="SapXep">
+                <option value="giatri_giam" selected="@(bl.SapXep == "giatri_giam")">Giá trị cao → thấp</option>
+                <option value="giatri_tang" selected="@(bl.SapXep == "giatri_tang")">Giá trị thấp → cao</option>
+                <option value="chiso_giam" selected="@(bl.SapXep == "chiso_giam")">Chỉ số cao nhất</option>
+                <option value="tuoi_tang" selected="@(bl.SapXep == "tuoi_tang")">Trẻ nhất</option>
+                <option value="tuoi_giam" selected="@(bl.SapXep == "tuoi_giam")">Nhiều tuổi nhất</option>
+                <option value="ten_az" selected="@(bl.SapXep == "ten_az")">Tên A → Z</option>
+            </select>
+        </div>
+    </form>
+
+    <div id="vungKetQua">
+        @await Html.PartialAsync("_LuoiCauThu", Model.KetQua)
+    </div>
+</div>

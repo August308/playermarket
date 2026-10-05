@@ -1,0 +1,262 @@
+/* =====================================================================
+   PlayerMarket — LỚP CHUYỂN ĐỘNG
+   Phiên bản 3.0, đi kèm hệ giao diện "biên tập thể thao".
+
+   Nguyên tắc:
+     - Chỉ chuyển động hai thuộc tính rẻ là transform và opacity, để không
+       gây tính lại bố cục; nhờ vậy chạy mượt cả trên máy cấu hình thấp.
+     - Mọi hiệu ứng đều tắt được, bằng thiết lập của hệ điều hành hoặc
+       bằng lớp body.tat-chuyen-dong do người dùng bật ở chân trang.
+     - Độ trễ theo bậc (--bac) tạo cảm giác nội dung "chạy vào" lần lượt.
+   ===================================================================== */
+
+:root {
+    --nhip-nhanh: .16s;
+    --nhip-vua: .34s;
+    --nhip-cham: .62s;
+    --duong-cong: cubic-bezier(.22, .68, .28, 1);
+    --duong-nay: cubic-bezier(.34, 1.56, .48, 1);
+}
+
+/* ================ 1. CHUYỂN CẢNH GIỮA CÁC TRANG ==================== */
+/* View Transitions API: trình duyệt tự chụp ảnh trang cũ và trang mới rồi
+   chuyển giữa hai ảnh đó. Trình duyệt chưa hỗ trợ sẽ bỏ qua toàn bộ khối
+   này và trang vẫn đổi bình thường. */
+
+@view-transition { navigation: auto; }
+
+::view-transition-old(root) {
+    animation: ra-trai var(--nhip-vua) var(--duong-cong) both;
+}
+
+::view-transition-new(root) {
+    animation: vao-phai var(--nhip-vua) var(--duong-cong) both;
+}
+
+@keyframes ra-trai {
+    to { opacity: 0; transform: translateX(-26px); }
+}
+
+@keyframes vao-phai {
+    from { opacity: 0; transform: translateX(26px); }
+}
+
+/* Thanh điều hướng giữ nguyên khi chuyển trang, không nháy. */
+.dieu-huong { view-transition-name: thanh-tren; }
+.thanh-duoi { view-transition-name: thanh-duoi; }
+
+/* Ảnh và tên cầu thủ bay từ thẻ sang trang hồ sơ. Tên riêng do Razor gán
+   theo mã cầu thủ nên mỗi thẻ là một đích đến khác nhau. */
+.anh-bay { view-transition-name: var(--ten-bay); }
+
+/* ================ 2. HIỆN DẦN KHI CUỘN TỚI ========================= */
+
+.hien-dan {
+    opacity: 0;
+    transform: translateY(22px);
+}
+
+.hien-dan.da-hien {
+    opacity: 1;
+    transform: none;
+    transition:
+        opacity var(--nhip-cham) var(--duong-cong) var(--tre, 0s),
+        transform var(--nhip-cham) var(--duong-cong) var(--tre, 0s);
+}
+
+/* Trình duyệt tắt JavaScript vẫn phải đọc được nội dung. */
+.khong-js .hien-dan { opacity: 1; transform: none; }
+
+/* ============== 3. THẺ CẦU THỦ: NGHIÊNG 3D THEO CHUỘT ============== */
+
+.the-3d {
+    transform-style: preserve-3d;
+    transition: transform var(--nhip-vua) var(--duong-cong);
+    will-change: transform;
+}
+
+.the-khung-3d:hover .the-3d {
+    transform:
+        rotateX(var(--nghieng-x, 0deg))
+        rotateY(var(--nghieng-y, 0deg))
+        translateZ(14px);
+}
+
+/* Vệt sáng chạy theo con trỏ trên mặt thẻ. */
+.the-3d::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(
+        280px circle at var(--chuot-x, 50%) var(--chuot-y, 50%),
+        color-mix(in srgb, var(--nhan) 26%, transparent),
+        transparent 62%);
+    transition: opacity var(--nhip-vua);
+}
+
+.the-khung-3d:hover .the-3d::after { opacity: 1; }
+
+.the-khung-3d.dang-keo { opacity: .45; transform: scale(.96) rotate(-2deg); }
+
+/* ================== 4. KHUNG XƯƠNG KHI TẢI ========================= */
+
+.xuong, .xuong-dong, .xuong-tron, .xuong-the {
+    animation: quet-xuong 1.35s linear infinite;
+}
+
+@keyframes quet-xuong {
+    from { background-position: 180% 0; }
+    to { background-position: -80% 0; }
+}
+
+/* ==================== 5. NHỊP VÀO CỦA LỚP PHỦ ====================== */
+
+.bang-lenh-nen.mo-ra, .ngan-keo-nen.mo-ra {
+    animation: mo-nen var(--nhip-nhanh) ease-out both;
+}
+
+@keyframes mo-nen { from { opacity: 0; } }
+
+.bang-lenh-nen.mo-ra .bang-lenh {
+    animation: bang-vao var(--nhip-vua) var(--duong-nay) both;
+}
+
+@keyframes bang-vao {
+    from { opacity: 0; transform: translateY(-20px) scale(.97); }
+}
+
+.ngan-keo-nen.mo-ra .ngan-keo {
+    animation: keo-vao var(--nhip-vua) var(--duong-cong) both;
+}
+
+@keyframes keo-vao {
+    from { transform: translateX(100%); }
+}
+
+.toast { animation: toast-vao var(--nhip-vua) var(--duong-nay) both; }
+
+@keyframes toast-vao {
+    from { opacity: 0; transform: translateX(40px); }
+}
+
+.toast.dang-tat { animation: toast-ra var(--nhip-nhanh) ease-in both; }
+
+@keyframes toast-ra {
+    to { opacity: 0; transform: translateX(40px); }
+}
+
+/* ====================== 6. BIỂU ĐỒ VẼ DẦN ========================== */
+
+/* Thanh chỉ số chạy từ 0 tới độ dài thật khi khối lọt vào màn hình. */
+.dau-cs, .thanh-day {
+    transform-origin: left center;
+    transition: width var(--nhip-cham) var(--duong-cong);
+}
+
+/* Đường biểu đồ SVG vẽ từ đầu đến cuối. */
+.duong-ve {
+    stroke-dasharray: var(--dai, 1000);
+    stroke-dashoffset: var(--dai, 1000);
+}
+
+.duong-ve.da-ve {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1.15s var(--duong-cong);
+}
+
+/* Cột biểu đồ mọc lên từ đáy. */
+.cot-ve { transform: scaleY(0); transform-origin: bottom; }
+.cot-ve.da-ve { transform: scaleY(1); transition: transform var(--nhip-cham) var(--duong-nay) var(--tre, 0s); }
+
+/* ================= 7. NHẤN MẠNH VÀ PHẢN HỒI ======================== */
+
+/* Số vừa đổi giá trị thì nháy một nhịp — dùng khi nhận tin thời gian thực. */
+.vua-doi { animation: nhay-so .62s var(--duong-cong); }
+
+@keyframes nhay-so {
+    30% { transform: scale(1.14); color: var(--nhan); }
+}
+
+/* Hàng bảng vừa được thêm. */
+.vua-them { animation: sang-hang 1.1s ease-out; }
+
+@keyframes sang-hang {
+    from { background: var(--nhan-mo); }
+}
+
+/* Nút đang chờ phản hồi. */
+.dang-cho { position: relative; color: transparent !important; pointer-events: none; }
+
+.dang-cho::after {
+    content: '';
+    position: absolute;
+    width: 15px; height: 15px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    color: var(--chinh);
+    animation: xoay .62s linear infinite;
+}
+
+@keyframes xoay { to { transform: rotate(360deg); } }
+
+/* Huy hiệu cảnh báo đập nhẹ để hút mắt, không chói. */
+.nhan-canh-bao { animation: dap-nhe 2.4s ease-in-out infinite; }
+
+@keyframes dap-nhe {
+    50% { transform: scale(1.07); }
+}
+
+/* ================== 8. THANH TIẾN TRÌNH TRANG ====================== */
+
+.thanh-tien-trinh.xong { opacity: 0; }
+
+/* ====================== 9. PHÁO GIẤY ============================== */
+/* Dùng khi người chơi trả lời đúng ở trò chơi đoán giá. */
+
+.phao {
+    position: fixed;
+    top: -14px;
+    width: 9px;
+    height: 15px;
+    z-index: 550;
+    pointer-events: none;
+    animation: roi-phao linear forwards;
+}
+
+@keyframes roi-phao {
+    to { transform: translateY(104vh) rotate(760deg); }
+}
+
+/* =================== 10. LỐI THOÁT CHUYỂN ĐỘNG ====================== */
+/* Hai lối tắt sau phải đặt cuối tệp để thắng mọi khai báo ở trên. */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .hien-dan { opacity: 1; transform: none; }
+    .duong-ve { stroke-dashoffset: 0; }
+    .cot-ve { transform: none; }
+
+    @view-transition { navigation: none; }
+}
+
+body.tat-chuyen-dong *,
+body.tat-chuyen-dong *::before,
+body.tat-chuyen-dong *::after {
+    animation: none !important;
+    transition: none !important;
+}
+
+body.tat-chuyen-dong .hien-dan { opacity: 1; transform: none; }
+body.tat-chuyen-dong .duong-ve { stroke-dashoffset: 0; }
+body.tat-chuyen-dong .cot-ve { transform: none; }
+body.tat-chuyen-dong .the-khung-3d:hover .the-3d { transform: none; }

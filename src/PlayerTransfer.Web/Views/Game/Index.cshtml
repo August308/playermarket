@@ -1,0 +1,96 @@
+@model List<HangNguoiChoiDto>
+@{ ViewData["Title"] = "Đoán giá cầu thủ"; }
+
+<div style="margin:22px 0 18px">
+    <h1>🎯 Đoán giá cầu thủ</h1>
+    <p class="phu" style="margin:4px 0 0">
+        Mỗi lượt 5 cầu thủ. Đoán càng sát giá trị thật càng nhiều điểm — sai dưới 10% được tính là đúng.
+    </p>
+</div>
+
+<div class="bo-cuc" style="grid-template-columns:minmax(0,1fr) 340px">
+    <div class="khoi hien-dan" id="khuChoi">
+        <div id="manBatDau" class="rong">
+            <div class="rong-bieu-tuong">🎮</div>
+            <h3 style="margin-bottom:6px">Sẵn sàng chưa?</h3>
+            <p class="phu">Bạn sẽ thấy thông tin cầu thủ — trừ giá trị. Kéo thanh trượt để đoán.</p>
+            <button type="button" class="nut nut-chinh" id="nutBatDau">Bắt đầu chơi</button>
+        </div>
+
+        <div id="manChoi" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                <span class="nhan">Câu <strong id="soCauHienTai">1</strong>/<span id="tongSoCau">5</span></span>
+                <span class="nhan nhan-tot">Điểm: <strong id="diemHienTai">0</strong></span>
+            </div>
+
+            <div style="display:flex;gap:16px;align-items:center;margin-bottom:18px">
+                <div class="anh-cau-thu" id="anhCauThu" style="width:72px;height:72px;flex:0 0 72px;font-size:24px"></div>
+                <div style="flex:1;min-width:0">
+                    <h2 id="tenCauThu" style="margin-bottom:6px"></h2>
+                    <div class="dong-meta" id="metaCauThu"></div>
+                </div>
+                <div class="chi-so" id="chiSoCauThu" style="width:54px;height:54px;flex-basis:54px;font-size:19px"></div>
+            </div>
+
+            <div class="nhom" style="border:none;padding-top:0">
+                <div class="nhom-ten">Bạn đoán giá trị là</div>
+                <div class="truot-gia-tri" style="font-size:24px" id="nhanDoan">50 tr €</div>
+                <input class="o-nhap" type="range" id="thanhDoan" min="0" max="250" step="1" value="50"
+                       oninput="document.getElementById('nhanDoan').textContent = PMGia(this.value)" />
+            </div>
+
+            <button type="button" class="nut nut-chinh" id="nutChot" style="width:100%">Chốt đáp án</button>
+
+            <div id="ketQuaCau" style="display:none;margin-top:16px"></div>
+        </div>
+
+        <div id="manKetThuc" style="display:none" class="rong">
+            <div class="rong-bieu-tuong">🏁</div>
+            <h3 style="margin-bottom:6px">Hết lượt!</h3>
+            <p class="gia-chu" style="font-size:30px;font-weight:750;margin:6px 0">
+                <span id="diemCuoi">0</span> điểm
+            </p>
+            <p class="phu" id="tomTatCuoi"></p>
+            <div style="display:flex;gap:8px;justify-content:center;margin-top:14px">
+                <button type="button" class="nut nut-chinh" id="nutChoiLai">Chơi lại</button>
+                <a class="nut" asp-controller="Players" asp-action="Index">Xem cầu thủ</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="khoi hien-dan">
+        <div class="khoi-dau"><h3>🏆 Bảng xếp hạng</h3></div>
+
+        @if (!Model.Any())
+        {
+            <div class="rong" style="padding:28px 12px">
+                <p class="phu" style="margin:0">Chưa có ai chơi. Bạn là người đầu tiên!</p>
+            </div>
+        }
+        else
+        {
+            @foreach (var h in Model)
+            {
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--vien)">
+                    <span class="chu-cai" style="width:28px;height:28px;flex:0 0 28px;font-size:12px;@(h.ThuHang == 1 ? "background:linear-gradient(135deg,#f59e0b,#b45309)" : "")">@h.ThuHang</span>
+                    <span style="flex:1;min-width:0">
+                        <span style="font-weight:600;display:block">@h.HoTen</span>
+                        <span class="mo">@h.SoCauDung/@h.TongSoCau đúng · lệch @h.DoLechTrungBinh%</span>
+                    </span>
+                    <strong class="gia-chu">@h.Diem</strong>
+                </div>
+            }
+        }
+
+        @if (ViewBag.DaDangNhap != true)
+        {
+            <p class="mo" style="margin-bottom:0">
+                <a asp-controller="Account" asp-action="DangNhap">Đăng nhập</a> để lưu điểm vào bảng xếp hạng.
+            </p>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/tro-choi.js" asp-append-version="true"></script>
+}

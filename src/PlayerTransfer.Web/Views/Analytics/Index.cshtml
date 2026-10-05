@@ -1,0 +1,111 @@
+@model DinhGiaVm
+@{
+    ViewData["Title"] = "Mô hình định giá";
+    var kq = Model.KetQua;
+    var cs = kq?.ChiSo;
+    var laQuanTri = Context.Session.GetString("VaiTro") == "QuanTriVien";
+}
+
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:22px 0 18px">
+    <div>
+        <h1>Mô hình định giá cầu thủ</h1>
+        <p class="phu" style="margin:4px 0 0">
+            Hồi quy tuyến tính bội trên logarit giá trị thị trường, huấn luyện bằng số liệu thi đấu thật.
+            So giá mô hình với giá Transfermarkt để tìm cầu thủ đang bị định giá lệch.
+        </p>
+    </div>
+    @if (laQuanTri)
+    {
+        <form asp-action="HuanLuyen" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="nut nut-nhe">Huấn luyện lại</button>
+        </form>
+    }
+</div>
+
+@if (ViewBag.Loi != null)
+{
+    <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+}
+
+@if (cs != null)
+{
+    <div class="khoi hien-dan">
+        <div class="khoi-dau">
+            <h3>Chất lượng mô hình</h3>
+            <span class="mo">Đánh giá trên @DinhDangSo.So(cs.SoMauKiemTra) cầu thủ chưa dùng để huấn luyện</span>
+        </div>
+
+        <div class="luoi-tin">
+            <div class="o-tin"><div class="nhan-o">MAE</div><div class="gia-o">@DinhDangSo.TrieuEuro(cs.MAE)</div></div>
+            <div class="o-tin"><div class="nhan-o">RMSE</div><div class="gia-o">@DinhDangSo.TrieuEuro(cs.RMSE)</div></div>
+            <div class="o-tin"><div class="nhan-o">MAPE</div><div class="gia-o">@DinhDangSo.So(cs.MAPE, 1) %</div></div>
+            <div class="o-tin"><div class="nhan-o">R²</div><div class="gia-o">@DinhDangSo.So(cs.R2, 4)</div></div>
+            <div class="o-tin"><div class="nhan-o">Lệch ≤ 30%</div><div class="gia-o">@DinhDangSo.So(cs.TyLeTrongNguong30, 1) %</div></div>
+            <div class="o-tin"><div class="nhan-o">Mẫu huấn luyện</div><div class="gia-o">@DinhDangSo.So(cs.SoMauHuanLuyen)</div></div>
+        </div>
+
+        <p class="mo" style="font-size:.85rem;margin-top:12px;line-height:1.6">
+            Đặc trưng đầu vào: tuổi, tuổi², logarit số phút thi đấu, bàn thắng/90, kiến tạo/90,
+            số trận, thẻ/trận, nhóm vị trí và giải đấu. Chia 80% huấn luyện / 20% kiểm tra theo
+            mã cầu thủ nên kết quả lặp lại được ở mọi lần chạy.
+            <strong>R² càng gần 1</strong> nghĩa là mô hình giải thích được càng nhiều biến thiên của giá.
+        </p>
+    </div>
+}
+
+<form method="get" class="khoi" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+    <div class="truong" style="flex:1;min-width:180px">
+        <label for="giaToiThieu">Chỉ xét cầu thủ từ (triệu €)</label>
+        <input class="o-nhap" type="number" step="0.5" min="0" id="giaToiThieu"
+               name="giaToiThieu" value="@Model.GiaToiThieu" />
+    </div>
+    <div class="truong" style="flex:1;min-width:150px">
+        <label for="soLuong">Số cầu thủ mỗi bảng</label>
+        <input class="o-nhap" type="number" min="5" max="50" id="soLuong" name="soLuong" value="@Model.SoLuong" />
+    </div>
+    <button type="submit" class="nut nut-chinh">Xem lại</button>
+</form>
+
+@if (kq != null && (kq.MonHoi.Count > 0 || kq.BiThoiGia.Count > 0))
+{
+    <div class="luoi-hai-cot">
+        <div class="khoi hien-dan">
+            <div class="khoi-dau">
+                <h3>Có thể đang bị định giá thấp</h3>
+                <span class="nhan nhan-tot">Món hời</span>
+            </div>
+            <p class="mo" style="margin:-4px 0 10px;font-size:.85rem">
+                Giá thị trường thấp hơn giá mô hình nhiều nhất.
+            </p>
+            @await Html.PartialAsync("_BangDinhGia", kq.MonHoi)
+        </div>
+
+        <div class="khoi hien-dan">
+            <div class="khoi-dau">
+                <h3>Có thể đang bị thổi giá</h3>
+                <span class="nhan nhan-canh-bao">Đắt</span>
+            </div>
+            <p class="mo" style="margin:-4px 0 10px;font-size:.85rem">
+                Giá thị trường cao hơn giá mô hình nhiều nhất.
+            </p>
+            @await Html.PartialAsync("_BangDinhGia", kq.BiThoiGia)
+        </div>
+    </div>
+
+    <p class="mo" style="margin-top:14px;line-height:1.6">
+        Đã xét @DinhDangSo.So(kq.SoCauThuXet) cầu thủ. Kết quả là gợi ý thống kê, không phải kết luận
+        chuyên môn: mô hình chỉ nhìn số liệu thi đấu và không biết gì về chấn thương, thái độ,
+        vị trí chiến thuật hay giá trị thương mại của cầu thủ.
+    </p>
+}
+else if (ViewBag.Loi == null)
+{
+    <div class="khoi rong">
+        <div class="rong-bieu-tuong">📈</div>
+        <p class="mo">
+            Chưa đủ dữ liệu để huấn luyện. Hãy nạp bộ dữ liệu Transfermarkt kèm tệp
+            <code>appearances.csv</code> ở mục Dataset trước.
+        </p>
+    </div>
+}

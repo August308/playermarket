@@ -1,0 +1,35 @@
+@model List<PlayerTransfer.Application.Dtos.BienDongDto>
+
+@if (Model == null || Model.Count == 0)
+{
+    <p class="mo">Không có cầu thủ nào.</p>
+}
+else
+{
+    <table>
+        <thead>
+        <tr>
+            <th>Cầu thủ</th>
+            <th style="text-align:right">Trước</th>
+            <th style="text-align:right">Nay</th>
+            <th style="text-align:right">Thay đổi</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var x in Model)
+        {
+            <tr>
+                <td>
+                    <a asp-controller="Players" asp-action="ChiTiet" asp-route-id="@x.MaCauThu">@x.HoTen</a>
+                    <div class="mo" style="font-size:.78rem">@x.CauLacBo</div>
+                </td>
+                <td style="text-align:right">@DinhDangSo.So(x.GiaCu, 1)</td>
+                <td style="text-align:right">@DinhDangSo.So(x.GiaMoi, 1)</td>
+                <td class="@(x.PhanTram >= 0 ? "so-duong" : "so-am")" style="text-align:right">
+                    @x.PhanTram.ToString("+0.0;-0.0")%
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

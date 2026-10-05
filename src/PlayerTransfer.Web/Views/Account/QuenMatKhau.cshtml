@@ -1,0 +1,19 @@
+@{ ViewData["Title"] = "Quên mật khẩu"; }
+
+<div class="khoi form-khung">
+    <h1 style="margin-bottom:6px">Quên mật khẩu</h1>
+    <p class="phu" style="margin-top:0">Nhập email đã đăng ký, hệ thống sẽ gửi liên kết đặt lại mật khẩu.</p>
+
+    <form method="post" asp-controller="Account" asp-action="QuenMatKhau">
+        @Html.AntiForgeryToken()
+        <div class="truong">
+            <label>Email</label>
+            <input class="o-nhap" type="email" name="email" required />
+        </div>
+        <button type="submit" class="nut nut-chinh" style="width:100%">Gửi liên kết</button>
+    </form>
+
+    <p class="mo" style="margin-bottom:0">
+        <a asp-controller="Account" asp-action="DangNhap">Quay lại đăng nhập</a>
+    </p>
+</div>

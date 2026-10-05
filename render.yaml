@@ -1,0 +1,27 @@
+# Bản thiết kế (Blueprint) cho Render: New → Blueprint → chọn kho mã này.
+# Một dịch vụ web chạy cả API và giao diện (xem Dockerfile.render).
+services:
+  - type: web
+    name: playermarket
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /offline.html
+    autoDeploy: true
+    envVars:
+      # Cổng giao diện nghe; Render chuyển lưu lượng công khai vào cổng này.
+      - key: PORT
+        value: "10000"
+      # Khóa ký JWT: Render tự sinh một chuỗi ngẫu nhiên, không nằm trong mã nguồn.
+      - key: Jwt__Key
+        generateValue: true
+      # Mật khẩu tài khoản admin@playertransfer.local — Render sẽ hỏi khi tạo dịch vụ.
+      - key: QuanTri__MatKhau
+        sync: false
+      # Tùy chọn: khóa API-Football. Để trống thì hệ thống chỉ dùng dữ liệu có sẵn.
+      - key: FootballApi__Key
+        sync: false
+      - key: FootballApi__BatDongBoDinhKy
+        value: "false"

@@ -1,0 +1,235 @@
+@model ThongKeVm
+@{ ViewData["Title"] = "Thống kê thị trường"; }
+
+<h1>Thống kê thị trường chuyển nhượng</h1>
+
+<div class="khoi">
+    <form method="get" asp-controller="Statistics" asp-action="Index"
+          style="display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; align-items:end">
+        <div class="truong" style="margin:0">
+            <label>Báo cáo</label>
+            <select class="o-nhap" name="baoCao">
+                <option value="by-season" selected="@(Model.BaoCao == "by-season")">Chi phí theo mùa giải</option>
+                <option value="by-league" selected="@(Model.BaoCao == "by-league")">Chi phí theo giải đấu</option>
+                <option value="top-transfers" selected="@(Model.BaoCao == "top-transfers")">Top thương vụ đắt giá</option>
+                <option value="club-balance" selected="@(Model.BaoCao == "club-balance")">Chi và thu của câu lạc bộ</option>
+                <option value="by-position" selected="@(Model.BaoCao == "by-position")">Giá trị theo vị trí</option>
+                <option value="by-age" selected="@(Model.BaoCao == "by-age")">Giá trị theo độ tuổi</option>
+            </select>
+        </div>
+
+        <div class="truong" style="margin:0">
+            <label>Mùa giải</label>
+            <select class="o-nhap" name="muaGiai">
+                <option value="">Tất cả</option>
+                @foreach (var m in Model.MuaGiais)
+                {
+                    <option value="@m" selected="@(Model.MuaGiai == m)">@m</option>
+                }
+            </select>
+        </div>
+
+        <div class="truong" style="margin:0">
+            <label>Giải đấu</label>
+            <select class="o-nhap" name="maGiaiDau">
+                <option value="">Tất cả</option>
+                @foreach (var g in Model.GiaiDaus)
+                {
+                    <option value="@g.Ma" selected="@(Model.MaGiaiDau == g.Ma)">@g.Ten</option>
+                }
+            </select>
+        </div>
+
+        <button type="submit" class="nut nut-chinh">Xem báo cáo</button>
+    </form>
+</div>
+
+<div class="khoi">
+    <div class="khoi-dau"><h3>@Model.TieuDe</h3></div>
+
+    @if (Model.BaoCao == "top-transfers")
+    {
+        @if (Model.ThuongVus.Any())
+        {
+            <table>
+                <thead>
+                <tr><th class="giua">#</th><th>Cầu thủ</th><th>Mùa giải</th><th>Từ</th><th>Đến</th>
+                    <th class="so">Phí (tr €)</th><th class="so">Giá trị lúc đó</th><th class="so">Chênh lệch</th></tr>
+                </thead>
+                <tbody>
+                @{ var stt = 1; }
+                @foreach (var tv in Model.ThuongVus)
+                {
+                    <tr>
+                        <td class="giua">@(stt++)</td>
+                        <td><a asp-controller="Players" asp-action="ChiTiet" asp-route-id="@tv.MaCauThu">@tv.CauThu</a></td>
+                        <td>@tv.MuaGiai</td>
+                        <td>@tv.CLBDi</td>
+                        <td>@tv.CLBDen</td>
+                        <td class="so">@DinhDangSo.SoGon(tv.PhiChuyenNhuong, 2)</td>
+                        <td class="so">@DinhDangSo.SoGon(tv.GiaTriThiTruongLucDo, 2)</td>
+                        <td class="so @(tv.ChenhLech >= 0 ? "giam" : "tang")">@DinhDangSo.SoGon(tv.ChenhLech, 2)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+            <p class="mo">
+                Chênh lệch dương nghĩa là câu lạc bộ trả cao hơn giá trị thị trường ước tính tại thời điểm đó.
+            </p>
+        }
+        else
+        {
+            <div class="rong">Không có dữ liệu trong khoảng lọc đã chọn.</div>
+        }
+    }
+    else if (Model.DuLieu.Any())
+    {
+        <canvas id="bieuDo" height="110"></canvas>
+
+        <div class="bang-bao" style="margin-top:18px">
+            @if (Model.BaoCao == "by-position")
+            {
+                <table>
+                    <thead>
+                    <tr><th>Vị trí</th><th class="so">Nhỏ nhất</th><th class="so">Tứ phân vị 1</th>
+                        <th class="so">Trung vị</th><th class="so">Tứ phân vị 3</th><th class="so">Lớn nhất</th>
+                        <th class="so">Trung bình</th><th class="so">Số cầu thủ</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var d in Model.DuLieu)
+                    {
+                        <tr>
+                            <td>@d.Nhan</td>
+                            <td class="so">@DinhDangSo.So(d.NhoNhat, 1)</td>
+                            <td class="so">@DinhDangSo.So(d.TuPhanVi1, 1)</td>
+                            <td class="so" style="font-weight:700">@DinhDangSo.So(d.TrungVi, 1)</td>
+                            <td class="so">@DinhDangSo.So(d.TuPhanVi3, 1)</td>
+                            <td class="so">@DinhDangSo.So(d.LonNhat, 1)</td>
+                            <td class="so phu">@DinhDangSo.So(d.GiaTri, 1)</td>
+                            <td class="so phu">@DinhDangSo.So(d.GiaTriPhu)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <table>
+                    <thead><tr><th>Nhóm</th><th class="so">@Model.NhanTrucY</th><th class="so">Số liệu phụ</th></tr></thead>
+                    <tbody>
+                    @foreach (var d in Model.DuLieu)
+                    {
+                        <tr><td>@d.Nhan</td><td class="so">@DinhDangSo.So(d.GiaTri, 2)</td><td class="so">@DinhDangSo.So(d.GiaTriPhu)</td></tr>
+                    }
+                    </tbody>
+                </table>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="rong">Không có dữ liệu trong khoảng lọc đã chọn.</div>
+    }
+</div>
+
+@section Scripts {
+    @if (Model.BaoCao != "top-transfers" && Model.DuLieu.Any())
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+        <script>
+            (function () {
+                var nhan = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DuLieu.Select(x => x.Nhan)));
+                var gia = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DuLieu.Select(x => x.GiaTri)));
+                var loai = '@(Model.BaoCao == "by-age" ? "line" : "bar")';
+                var boSung = @Html.Raw(Model.BaoCao == "club-balance"
+                    ? System.Text.Json.JsonSerializer.Serialize(Model.DuLieu.Select(x => x.GiaTriPhu))
+                    : "null");
+
+                var hopPhanVi = @Html.Raw(Model.BaoCao == "by-position"
+                    ? System.Text.Json.JsonSerializer.Serialize(Model.DuLieu.Select(x => new[]
+                      { x.NhoNhat, x.TuPhanVi1, x.TrungVi, x.TuPhanVi3, x.LonNhat }))
+                    : "null");
+
+                var nhanTrucY = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.NhanTrucY));
+
+                PMBieuDo('bieuDo', function () {
+                    if (hopPhanVi) {
+                        // Biểu đồ hộp dựng bằng hai lớp cột trôi: râu (nhỏ nhất–lớn nhất) và hộp (Q1–Q3).
+                        return {
+                            type: 'bar',
+                            data: {
+                                labels: nhan,
+                                datasets: [
+                                    {
+                                        label: 'Khoảng nhỏ nhất – lớn nhất',
+                                        data: hopPhanVi.map(function (h) { return [h[0], h[4]]; }),
+                                        backgroundColor: PMMau('--chinh', .22),
+                                        barPercentage: .25
+                                    },
+                                    {
+                                        label: 'Tứ phân vị 1 – 3',
+                                        data: hopPhanVi.map(function (h) { return [h[1], h[3]]; }),
+                                        backgroundColor: PMMau('--chinh', .78),
+                                        barPercentage: .62
+                                    },
+                                    {
+                                        label: 'Trung vị',
+                                        data: hopPhanVi.map(function (h) { return [h[2], h[2] + 0.6]; }),
+                                        backgroundColor: PMMau('--bieu-6'),
+                                        barPercentage: .62
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function (c) {
+                                                var h = hopPhanVi[c.dataIndex].map(function (v) { return PMSo(v, 1); });
+                                                return ['Nhỏ nhất: ' + h[0], 'Q1: ' + h[1], 'Trung vị: ' + h[2],
+                                                        'Q3: ' + h[3], 'Lớn nhất: ' + h[4]];
+                                            }
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    x: { stacked: false, grid: { display: false } },
+                                    y: { beginAtZero: true, title: { display: true, text: 'Triệu euro' } }
+                                }
+                            }
+                        };
+                    }
+
+                    var boDuLieu = [{
+                        label: nhanTrucY,
+                        data: gia,
+                        backgroundColor: PMMau('--chinh', .8),
+                        borderColor: PMMau('--chinh'),
+                        pointBackgroundColor: PMMau('--chinh'),
+                        borderWidth: loai === 'line' ? 2 : 0,
+                        tension: .3
+                    }];
+
+                    if (boSung) {
+                        boDuLieu.push({
+                            label: 'Thu về (triệu €)',
+                            data: boSung,
+                            backgroundColor: PMMau('--bieu-2', .8),
+                            borderColor: PMMau('--bieu-2')
+                        });
+                    }
+
+                    return {
+                        type: loai,
+                        data: { labels: nhan, datasets: boDuLieu },
+                        options: {
+                            responsive: true,
+                            scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+                        }
+                    };
+                });
+            })();
+        </script>
+    }
+}

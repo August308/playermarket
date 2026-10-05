@@ -1,0 +1,76 @@
+@model TrangDuLieu<CauThuTomTatDto>
+
+<div class="thanh-ket-qua hien-dan">
+    <div>
+        <strong style="font-size:17px" class="dem" data-dem="@Model.TongSo" data-le="0">@DinhDangSo.So(Model.TongSo)</strong>
+        <span class="phu">cầu thủ phù hợp</span>
+    </div>
+    @if (Model.TongSoTrang > 1)
+    {
+        <span class="mo">Trang @Model.Trang / @Model.TongSoTrang</span>
+    }
+</div>
+
+@if (Model.DanhSach.Any())
+{
+    <div class="luoi">
+        @foreach (var ct in Model.DanhSach)
+        {
+            @await Html.PartialAsync("_CauThuCard", ct)
+        }
+    </div>
+
+    @if (Model.TongSoTrang > 1)
+    {
+        var dau = Math.Max(1, Model.Trang - 2);
+        var cuoi = Math.Min(Model.TongSoTrang, dau + 4);
+        dau = Math.Max(1, cuoi - 4);
+
+        <nav class="phan-trang">
+            @if (Model.Trang > 1)
+            {
+                <a href="#" data-trang="@(Model.Trang - 1)">‹</a>
+            }
+            @if (dau > 1)
+            {
+                <a href="#" data-trang="1">1</a>
+                @if (dau > 2)
+                {
+                    <span class="mo" style="border:none;background:none">…</span>
+                }
+            }
+            @for (var i = dau; i <= cuoi; i++)
+            {
+                if (i == Model.Trang)
+                {
+                    <span class="hien-tai">@i</span>
+                }
+                else
+                {
+                    <a href="#" data-trang="@i">@i</a>
+                }
+            }
+            @if (cuoi < Model.TongSoTrang)
+            {
+                @if (cuoi < Model.TongSoTrang - 1)
+                {
+                    <span class="mo" style="border:none;background:none">…</span>
+                }
+                <a href="#" data-trang="@Model.TongSoTrang">@Model.TongSoTrang</a>
+            }
+            @if (Model.Trang < Model.TongSoTrang)
+            {
+                <a href="#" data-trang="@(Model.Trang + 1)">›</a>
+            }
+        </nav>
+    }
+}
+else
+{
+    <div class="khoi rong">
+        <div class="rong-bieu-tuong">🔍</div>
+        <h3 style="margin-bottom:6px">Không tìm thấy cầu thủ nào</h3>
+        <p class="phu" style="margin:0 0 14px">Hãy nới rộng khoảng giá trị, bỏ bớt tiêu chí hoặc xóa toàn bộ bộ lọc.</p>
+        <button type="button" class="nut nut-chinh" onclick="document.getElementById('nutXoaLoc').click()">Xóa bộ lọc</button>
+    </div>
+}

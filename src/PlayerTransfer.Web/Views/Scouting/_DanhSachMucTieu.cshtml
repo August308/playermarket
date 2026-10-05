@@ -1,0 +1,66 @@
+@model List<MucTieuDto>
+
+@if (!Model.Any())
+{
+    <div class="khoi rong">
+        <div class="rong-bieu-tuong">🔭</div>
+        <h3 style="margin-bottom:6px">Không có mục tiêu nào khớp</h3>
+        <p class="phu" style="margin:0">Hãy nâng ngân sách, nới độ tuổi hoặc bỏ bớt tiêu chí.</p>
+    </div>
+}
+else
+{
+    <div class="thanh-ket-qua hien-dan">
+        <div>
+            <strong style="font-size:17px" class="dem" data-dem="@Model.Count" data-le="0">@Model.Count</strong>
+            <span class="phu">mục tiêu phù hợp, xếp theo điểm phù hợp</span>
+        </div>
+    </div>
+
+    <div class="luoi">
+        @foreach (var m in Model)
+        {
+            <div class="the-khung-3d hien-dan">
+                <article class="the the-3d" data-bac="@GiaoDienHelper.BacChiSo(m.CauThu.ChiSoTongHop)">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                        <span class="nhan nhan-tot" title="Điểm phù hợp với tiêu chí">
+                            Phù hợp @m.DiemPhuHop%
+                        </span>
+                        <span class="mo">@DinhDangSo.So(m.PhanTramNganSach)% ngân sách</span>
+                    </div>
+
+                    <div class="the-dau">
+                        @await Html.PartialAsync("_AnhCauThu", (m.CauThu.HoTen, m.CauThu.AnhDaiDien, 0))
+
+                        <div style="min-width:0;flex:1">
+                            <a class="the-ten" asp-controller="Players" asp-action="ChiTiet" asp-route-id="@m.CauThu.MaCauThu">
+                                @m.CauThu.HoTen
+                            </a>
+                            <div class="dong-meta">
+                                <span class="nhan nhan-vi-tri">@m.CauThu.ViTriVietTat</span>
+                                <span>@m.CauThu.Tuoi tuổi</span>
+                                <span>@m.CauThu.CauLacBo</span>
+                            </div>
+                        </div>
+
+                        <div class="chi-so @GiaoDienHelper.BacChiSo(m.CauThu.ChiSoTongHop)" title="@GiaoDienHelper.ChuThichChiSo(m.CauThu.ChiSoTongHop)">@GiaoDienHelper.HienChiSo(m.CauThu.ChiSoTongHop)</div>
+                    </div>
+
+                    <ul style="margin:0;padding-left:18px;font-size:12.5px;color:var(--chu-2)">
+                        @foreach (var ly in m.LyDo)
+                        {
+                            <li>@ly</li>
+                        }
+                    </ul>
+
+                    <div class="the-gia">
+                        <span class="gia-tri">@GiaoDienHelper.DinhDangGiaTri(m.CauThu.GiaTriHienTai)</span>
+                        <a class="nut nut-nho" asp-controller="Scouting" asp-action="ThayThe" asp-route-id="@m.CauThu.MaCauThu">
+                            Tương tự
+                        </a>
+                    </div>
+                </article>
+            </div>
+        }
+    </div>
+}

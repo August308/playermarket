@@ -1,0 +1,79 @@
+@model PlayerTransfer.Application.Dtos.KetQuaNhapDto
+@{
+    ViewData["Title"] = "Nhập cầu thủ từ Excel";
+}
+
+<div class="khung-hep">
+    <div class="khoi-dau">
+        <h1>Nhập cầu thủ từ Excel</h1>
+        <a asp-action="MauNhap" class="nut nut-nho nut-nhe">⬇ Tải tệp mẫu</a>
+    </div>
+    <p class="mo">
+        Tải tệp mẫu, điền dữ liệu rồi tải lên. Nên giữ «Chạy thử» ở lần đầu để xem lỗi
+        mà chưa ghi gì vào cơ sở dữ liệu.
+    </p>
+
+    @if (ViewBag.Loi != null)
+    {
+        <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+    }
+    @if (ViewBag.ThongBao != null)
+    {
+        <div class="bao bao-ok hien-dan"><span>✓</span><span>@ViewBag.ThongBao</span></div>
+    }
+
+    <div class="khoi">
+        <form asp-action="Nhap" method="post" enctype="multipart/form-data" class="form-khung">
+            @Html.AntiForgeryToken()
+
+            <div class="truong">
+                <label for="tep">Tệp Excel (.xlsx)</label>
+                <input class="o-nhap" type="file" id="tep" name="tep" accept=".xlsx" required />
+            </div>
+
+            <label class="chuyen" style="display:flex;gap:8px;align-items:center;margin:10px 0">
+                <input type="checkbox" name="chayThu" value="true" checked />
+                <span>Chạy thử — chỉ kiểm tra lỗi, chưa ghi vào cơ sở dữ liệu</span>
+            </label>
+
+            <div class="the-nut">
+                <button type="submit" class="nut nut-chinh">Tải lên và xử lý</button>
+            </div>
+        </form>
+    </div>
+
+    @if (Model != null && Model.TongDong > 0)
+    {
+        <div class="khoi">
+            <div class="khoi-dau">
+                <h2>Kết quả @(Model.ChayThu ? "chạy thử" : "nhập dữ liệu")</h2>
+            </div>
+
+            <div class="luoi-tin">
+                <div class="o-tin"><strong>@Model.TongDong</strong><span class="mo">Tổng dòng</span></div>
+                <div class="o-tin o-tot"><strong>@Model.SoDongThem</strong><span class="mo">Thêm mới</span></div>
+                <div class="o-tin"><strong>@Model.SoDongCapNhat</strong><span class="mo">Cập nhật</span></div>
+                <div class="o-tin"><strong>@Model.SoDongBoQua</strong><span class="mo">Bỏ qua</span></div>
+            </div>
+
+            @if (Model.DanhSachLoi.Count > 0)
+            {
+                <h3 style="margin:16px 0 8px">Các dòng bị bỏ qua</h3>
+                <ul class="mo" style="padding-left:18px;line-height:1.7">
+                    @foreach (var loi in Model.DanhSachLoi)
+                    {
+                        <li>@loi</li>
+                    }
+                </ul>
+            }
+
+            @if (Model.ChayThu && Model.SoDongBoQua == 0)
+            {
+                <p class="bao bao-ok" style="margin-top:14px">
+                    <span>✓</span>
+                    <span>Không có lỗi nào. Bỏ chọn «Chạy thử» rồi tải lại tệp để ghi vào cơ sở dữ liệu.</span>
+                </p>
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,57 @@
+@model List<PlayerTransfer.Application.Dtos.DiemThongKeDto>
+@{
+    ViewData["Title"] = "Cân đối chuyển nhượng câu lạc bộ";
+}
+
+<div style="margin:22px 0 18px">
+    <h1>Cân đối chuyển nhượng</h1>
+    <p class="phu" style="margin:4px 0 0">
+        Số dư = tiền thu từ bán cầu thủ trừ tiền chi mua cầu thủ, cộng dồn mọi mùa có dữ liệu.
+        Bấm vào tên đội để xem chi tiết.
+    </p>
+</div>
+
+@if (ViewBag.Loi != null)
+{
+    <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+}
+
+@if (Model == null || Model.Count == 0)
+{
+    <div class="khoi rong">
+        <div class="rong-bieu-tuong">💰</div>
+        <p class="mo">Chưa có dữ liệu chuyển nhượng. Hãy nạp bộ dữ liệu kèm tệp transfers.csv.</p>
+    </div>
+}
+else
+{
+    <div class="khoi">
+        <table>
+            <thead>
+            <tr>
+                <th>#</th><th>Câu lạc bộ</th>
+                <th style="text-align:right">Đã chi</th>
+                <th style="text-align:right">Số dư</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            @{ var i = 1; }
+            @foreach (var x in Model)
+            {
+                <tr>
+                    <td class="mo">@(i++)</td>
+                    <td><a asp-action="CauLacBo" asp-route-id="@x.Ma">@x.Nhan</a></td>
+                    <td style="text-align:right">@DinhDangSo.TrieuEuro(x.GiaTriPhu)</td>
+                    <td class="@(x.GiaTri >= 0 ? "so-duong" : "so-am")" style="text-align:right">
+                        @(x.GiaTri > 0 ? "+" : "")@DinhDangSo.TrieuEuro(x.GiaTri)
+                    </td>
+                    <td style="text-align:right">
+                        <a class="nut nut-nho nut-nhe" asp-action="CoCauTuoi" asp-route-id="@x.Ma">Cơ cấu tuổi</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

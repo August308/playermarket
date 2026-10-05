@@ -1,0 +1,23 @@
+@model (string HoTen, string Anh, int Co)
+@*
+    Ảnh đại diện cầu thủ dùng chung cho mọi nơi (thẻ, xu hướng, tương đồng, giỏ so sánh, tuyển trạch).
+    Trước đây thẻ cầu thủ dùng ảnh thật còn các danh sách khác chỉ hiện chữ cái đầu dù đã có ảnh.
+    Co = 0: dùng kích thước mặc định của .anh-cau-thu; > 0: ô nhỏ cạnh Co px.
+    Ảnh không tải được sẽ được site.js thay bằng ô chữ cái (data-chu / data-mau).
+*@
+@{
+    var mau = GiaoDienHelper.MauTheoTen(Model.HoTen);
+    var chu = GiaoDienHelper.ChuCaiDau(Model.HoTen);
+    var kieuCo = Model.Co > 0 ? $"--co:{Model.Co}px;" : string.Empty;
+    var lopCo = Model.Co > 0 ? "anh-nho" : string.Empty;
+}
+@if (!string.IsNullOrWhiteSpace(Model.Anh))
+{
+    <img class="anh-cau-thu @lopCo" style="@kieuCo" src="@Model.Anh" alt="" loading="lazy"
+         data-chu="@chu" data-mau="@mau" />
+}
+else
+{
+    <span class="anh-cau-thu anh-thay-the @lopCo"
+          style="@(kieuCo)background:linear-gradient(140deg, @mau, color-mix(in srgb, @mau 55%, #000))">@chu</span>
+}

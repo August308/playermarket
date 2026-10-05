@@ -1,0 +1,107 @@
+@model SoSanhDoiHinhDto
+@{
+    ViewData["Title"] = "So sánh đội hình";
+    var danhSach = ViewBag.DanhSach as List<DoiHinhDto> ?? new List<DoiHinhDto>();
+    int? maA = ViewBag.MaA;
+    int? maB = ViewBag.MaB;
+}
+
+<div style="margin:22px 0 18px">
+    <h1>So sánh hai đội hình</h1>
+    <p class="phu" style="margin:4px 0 0">Đối chiếu chỉ số trung bình, độ gắn kết, tổng giá trị và tuổi trung bình.</p>
+</div>
+
+<div class="khoi hien-dan">
+    <form method="get" asp-controller="Squad" asp-action="SoSanh"
+          style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end">
+        <div class="truong" style="margin:0">
+            <label>Đội hình A</label>
+            <select class="o-nhap" name="a" required>
+                <option value="">— Chọn —</option>
+                @foreach (var d in danhSach)
+                {
+                    <option value="@d.MaDoiHinh" selected="@(maA == d.MaDoiHinh)">@d.TenDoiHinh (@d.SoDoChienThuat)</option>
+                }
+            </select>
+        </div>
+
+        <div class="truong" style="margin:0">
+            <label>Đội hình B</label>
+            <select class="o-nhap" name="b" required>
+                <option value="">— Chọn —</option>
+                @foreach (var d in danhSach)
+                {
+                    <option value="@d.MaDoiHinh" selected="@(maB == d.MaDoiHinh)">@d.TenDoiHinh (@d.SoDoChienThuat)</option>
+                }
+            </select>
+        </div>
+
+        <button type="submit" class="nut nut-chinh">So sánh</button>
+    </form>
+</div>
+
+@if (ViewBag.ThongBao != null)
+{
+    <div class="bao bao-loi"><span>!</span><span>@ViewBag.ThongBao</span></div>
+}
+
+@if (Model != null)
+{
+    <div class="khoi hien-dan">
+        <div class="khoi-dau">
+            <h3>Kết quả</h3>
+            <span class="nhan nhan-tot">@Model.KetLuan</span>
+        </div>
+
+        <div class="bang-bao">
+            <table>
+                <thead>
+                <tr>
+                    <th style="width:220px">Chỉ tiêu</th>
+                    <th class="giua">@Model.DoiA.TenDoiHinh</th>
+                    <th class="giua">@Model.DoiB.TenDoiHinh</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var hang in Model.CacHang)
+                {
+                    <tr>
+                        <td><strong>@hang.Nhan</strong></td>
+                        @for (var i = 0; i < hang.GiaTriHienThi.Count; i++)
+                        {
+                            <td class="giua @(hang.ViTriTotNhat == i ? "o-tot" : "")">@hang.GiaTriHienThi[i]</td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="luoi-hai-cot">
+        @foreach (var (doi, ganKet) in new[] { (Model.DoiA, Model.GanKetA), (Model.DoiB, Model.GanKetB) })
+        {
+            <div class="khoi hien-dan">
+                <div class="khoi-dau">
+                    <h3>@doi.TenDoiHinh</h3>
+                    <span class="chi-so @(ganKet.ChiSoGanKet >= 75 ? "xuat-sac" : ganKet.ChiSoGanKet >= 50 ? "tot" : "trung-binh")"
+                          title="Độ gắn kết">@ganKet.ChiSoGanKet</span>
+                </div>
+
+                <div class="luoi-tin">
+                    <div class="o-tin"><div class="nhan-o">Cùng câu lạc bộ</div><div class="gia-o">@ganKet.DiemCungCLB/40</div></div>
+                    <div class="o-tin"><div class="nhan-o">Cùng quốc tịch</div><div class="gia-o">@ganKet.DiemCungQuocTich/25</div></div>
+                    <div class="o-tin"><div class="nhan-o">Cùng giải đấu</div><div class="gia-o">@ganKet.DiemCungGiaiDau/15</div></div>
+                    <div class="o-tin"><div class="nhan-o">Đúng vị trí</div><div class="gia-o">@ganKet.DiemDungViTri/20</div></div>
+                </div>
+
+                <ul style="margin:14px 0 0;padding-left:18px;font-size:13px;color:var(--chu-2)">
+                    @foreach (var nx in ganKet.NhanXet)
+                    {
+                        <li>@nx</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+}

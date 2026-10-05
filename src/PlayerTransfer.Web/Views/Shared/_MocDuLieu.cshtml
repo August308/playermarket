@@ -1,0 +1,53 @@
+@*
+    Dải ghi chú mốc dữ liệu.
+
+    Mục đích: nói thẳng với người xem rằng số liệu tính đến ngày nào và lấy từ
+    đâu, thay vì để họ mặc định đây là dữ liệu thời gian thực. Ngày tháng lấy
+    từ khoá MocDuLieu trong appsettings.json, nên khi nguồn cập nhật trở lại
+    chỉ cần sửa một chỗ duy nhất.
+
+    Tham số tuỳ chọn truyền qua ViewData:
+      MocDuLieu_Gon = true  → hiện bản rút gọn một dòng, dùng trong trang hồ sơ.
+*@
+
+@{
+    var mocGiaTri = CauHinh["MocDuLieu:GiaTri"];
+    var mocTranDau = CauHinh["MocDuLieu:TranDau"];
+    var nguon = CauHinh["MocDuLieu:Nguon"];
+    var ghiChu = CauHinh["MocDuLieu:GhiChu"];
+    var ngungCapNhat = CauHinh.GetValue("MocDuLieu:NgungCapNhat", false);
+    var gon = ViewData["MocDuLieu_Gon"] as bool? ?? false;
+
+    string DinhDang(string iso) =>
+        DateTime.TryParse(iso, out var d) ? d.ToString("dd/MM/yyyy") : "—";
+
+    var ngayGiaTri = DinhDang(mocGiaTri);
+    var ngayTranDau = DinhDang(mocTranDau);
+}
+
+@if (!string.IsNullOrWhiteSpace(mocGiaTri))
+{
+    @if (gon)
+    {
+        <p class="moc-gon">
+            <span class="bt">🕓</span>
+            Giá trị thị trường cập nhật đến <strong>@ngayGiaTri</strong>; số liệu thi đấu đến <strong>@ngayTranDau</strong>.
+        </p>
+    }
+    else
+    {
+        <aside class="dai-moc" role="note">
+            <span class="dai-moc-bt">🕓</span>
+            <div>
+                <strong>Mốc dữ liệu:</strong>
+                giá trị thị trường cập nhật đến <strong>@ngayGiaTri</strong>,
+                số liệu thi đấu đến <strong>@ngayTranDau</strong>.
+                @if (ngungCapNhat && !string.IsNullOrWhiteSpace(ghiChu))
+                {
+                    <text>@ghiChu</text>
+                }
+                <span class="dai-moc-nguon">Nguồn: @nguon</span>
+            </div>
+        </aside>
+    }
+}

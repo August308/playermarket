@@ -1,0 +1,127 @@
+@model PlayerTransfer.Application.Dtos.DuBaoGiaDto
+@{
+    ViewData["Title"] = "Dự báo giá trị";
+    var soThang = (int)(ViewBag.SoThang ?? 6);
+    var coDuLieu = Model.DuBao.Count > 0;
+}
+
+<div style="margin:22px 0 18px">
+    <h1>Dự báo giá trị @Model.HoTen</h1>
+    <p class="phu" style="margin:4px 0 0">
+        Đường xu hướng hồi quy trên logarit giá trị theo thời gian, dựng từ
+        @Model.SoMocLichSu mốc giá thật. Dải mờ là khoảng tin cậy khoảng 80%.
+    </p>
+</div>
+
+@if (ViewBag.Loi != null)
+{
+    <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+}
+
+@if (coDuLieu)
+{
+    <div class="khoi hien-dan">
+        <div class="khoi-dau">
+            <h3>Biểu đồ dự báo</h3>
+            <form method="get" style="display:flex;gap:8px;align-items:center">
+                <input type="hidden" name="id" value="@Model.MaCauThu" />
+                <label class="mo" for="soThang">Số tháng</label>
+                <input class="o-nhap" style="width:80px" type="number" min="1" max="24"
+                       id="soThang" name="soThang" value="@soThang" />
+                <button type="submit" class="nut nut-nho nut-nhe">Cập nhật</button>
+            </form>
+        </div>
+        <div class="khung-bieu-do"><canvas id="bieuDoDuBao"></canvas></div>
+    </div>
+
+    <div class="khoi">
+        <div class="khoi-dau"><h3>Nhận định</h3></div>
+        <p>@Model.NhanXet</p>
+        <div class="luoi-tin">
+            <div class="o-tin"><div class="nhan-o">Giá hiện tại</div><div class="gia-o">@DinhDangSo.TrieuEuro(Model.GiaHienTai)</div></div>
+            <div class="o-tin"><div class="nhan-o">Tốc độ/tháng</div><div class="gia-o">@Model.TocDoThayDoiThang.ToString("+0.00;-0.00")%</div></div>
+            <div class="o-tin"><div class="nhan-o">Mốc lịch sử</div><div class="gia-o">@Model.SoMocLichSu</div></div>
+        </div>
+        <p class="mo" style="font-size:.85rem;margin-top:12px;line-height:1.6">
+            Dự báo chỉ ngoại suy xu hướng quá khứ. Nó không biết cầu thủ sắp chuyển nhượng,
+            chấn thương hay đổi vai trò, nên càng xa hiện tại thì càng kém tin cậy — đó là lý do
+            dải tin cậy mở rộng dần.
+        </p>
+    </div>
+
+    <p style="margin-top:14px">
+        <a class="nut nut-nhe" asp-controller="Players" asp-action="ChiTiet" asp-route-id="@Model.MaCauThu">
+            ← Về hồ sơ cầu thủ
+        </a>
+    </p>
+}
+
+@section Scripts {
+    @if (coDuLieu)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+        <script>
+            (function () {
+                var lichSu = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                    Model.LichSu.Select(x => new { t = x.Ngay.ToString("yyyy-MM"), v = x.GiaTri })));
+                var duBao = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+                    Model.DuBao.Select(x => new { t = x.Ngay.ToString("yyyy-MM"), v = x.GiaTri, d = x.CanDuoi, c = x.CanTren })));
+
+                var nhan = lichSu.map(function (x) { return x.t; }).concat(duBao.map(function (x) { return x.t; }));
+                var rong = lichSu.map(function () { return null; });
+
+                PMBieuDo('bieuDoDuBao', function () {
+                    return {
+                        type: 'line',
+                        data: {
+                            labels: nhan,
+                            datasets: [
+                                {
+                                    label: 'Giá thật',
+                                    data: lichSu.map(function (x) { return x.v; }),
+                                    borderColor: PMMau('--chinh'),
+                                    backgroundColor: PMMau('--chinh', .14),
+                                    tension: .25,
+                                    pointRadius: 2
+                                },
+                                {
+                                    label: 'Dự báo',
+                                    data: rong.concat(duBao.map(function (x) { return x.v; })),
+                                    borderColor: PMMau('--bieu-6'),
+                                    borderDash: [6, 4],
+                                    tension: .25,
+                                    pointRadius: 2
+                                },
+                                {
+                                    label: 'Cận trên',
+                                    data: rong.concat(duBao.map(function (x) { return x.c; })),
+                                    borderColor: PMMau('--bieu-6', .3),
+                                    pointRadius: 0,
+                                    fill: '+1'
+                                },
+                                {
+                                    label: 'Cận dưới',
+                                    data: rong.concat(duBao.map(function (x) { return x.d; })),
+                                    borderColor: PMMau('--bieu-6', .3),
+                                    backgroundColor: PMMau('--bieu-6', .12),
+                                    pointRadius: 0,
+                                    fill: false
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                                legend: { labels: { filter: function (x) { return x.text.indexOf('Cận') !== 0; } } },
+                                tooltip: { callbacks: { label: function (c) { return c.dataset.label + ': ' + PMGia(c.parsed.y); } } }
+                            },
+                            scales: { y: { title: { display: true, text: 'Triệu €' } } }
+                        }
+                    };
+                });
+            })();
+        </script>
+    }
+}

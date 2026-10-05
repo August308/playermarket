@@ -1,0 +1,135 @@
+@model BangSoSanhDto
+@{ ViewData["Title"] = "So sánh cầu thủ"; }
+
+<h1>So sánh cầu thủ</h1>
+
+@if (ViewBag.ThongBao != null)
+{
+    <div class="khoi rong">
+        <p>@ViewBag.ThongBao</p>
+        <a class="nut nut-chinh" asp-controller="Players" asp-action="Index">Chọn cầu thủ để so sánh</a>
+    </div>
+}
+else
+{
+    <div class="khoi">
+        <div class="khoi-dau">
+            <h3>Bảng so sánh @Model.CauThus.Count cầu thủ</h3>
+            <div style="display:flex; gap:8px">
+                <button type="button" class="nut nut-nho" id="nutXuatPng">🖼 Xuất PNG</button>
+                <a class="nut nut-nho" asp-controller="Compare" asp-action="XuatCsv">⭳ Xuất CSV</a>
+                <form asp-controller="Compare" asp-action="XoaHet" method="post">
+                    <button type="submit" class="nut nut-nho nut-do">Xóa giỏ</button>
+                </form>
+            </div>
+        </div>
+
+        <table id="bangSoSanh">
+            <thead>
+            <tr>
+                <th style="width:230px">Chỉ tiêu</th>
+                @foreach (var ct in Model.CauThus)
+                {
+                    <th class="giua">
+                        <a asp-controller="Players" asp-action="ChiTiet" asp-route-id="@ct.MaCauThu">@ct.HoTen</a>
+                        <div class="dong-meta" style="justify-content:center">@ct.CauLacBo</div>
+                        <form asp-controller="Compare" asp-action="Bo" method="post" style="margin-top:4px">
+                            <input type="hidden" name="maCauThu" value="@ct.MaCauThu" />
+                            <button type="submit" class="nut nut-nho">Bỏ</button>
+                        </form>
+                    </th>
+                }
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var hang in Model.CacHang)
+            {
+                <tr>
+                    <td><strong>@hang.Nhan</strong></td>
+                    @for (var i = 0; i < hang.GiaTriHienThi.Count; i++)
+                    {
+                        <td class="giua @(hang.ViTriTotNhat == i ? "o-tot" : "")">@hang.GiaTriHienThi[i]</td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="khoi">
+        <div class="khoi-dau"><h3>Biểu đồ radar chỉ số</h3></div>
+        <div style="max-width:560px; margin:0 auto">
+            <div class="khung-radar"><canvas id="bieuDoRadar"></canvas></div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+        <script>
+            document.getElementById('nutXuatPng').addEventListener('click', function () {
+                var bang = document.getElementById('bangSoSanh');
+                var nenTrang = getComputedStyle(document.body).backgroundColor;
+
+                html2canvas(bang, { backgroundColor: nenTrang, scale: 2 }).then(function (canvas) {
+                    var lienKet = document.createElement('a');
+                    lienKet.download = 'so-sanh-cau-thu.png';
+                    lienKet.href = canvas.toDataURL('image/png');
+                    lienKet.click();
+                });
+            });
+        </script>
+        <script>
+            (function () {
+                var khoaChiSo = ['tocdo', 'dutdiem', 'chuyen', 'redat', 'phongngu', 'theluc'];
+                var bang = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+
+                // Nhãn trục lấy đúng từ tên hàng trong bảng để biểu đồ và bảng luôn gọi cùng một tên.
+                var nhanChiSo = khoaChiSo.map(function (khoa) {
+                    var hang = bang.CacHang.find(function (h) { return h.Khoa === khoa; });
+                    return hang ? hang.Nhan : khoa;
+                });
+
+                PMBieuDo('bieuDoRadar', function () {
+                    return {
+                        type: 'radar',
+                        data: {
+                            labels: nhanChiSo,
+                            // Cầu thủ chưa đủ số liệu không có chỉ số: bỏ khỏi biểu đồ thay vì vẽ một chấm ở tâm.
+                            datasets: bang.CauThus.map(function (ct, i) {
+                                var coSoLieu = khoaChiSo.some(function (khoa) {
+                                    var hang = bang.CacHang.find(function (h) { return h.Khoa === khoa; });
+                                    return hang && hang.GiaTriSo[i] != null;
+                                });
+                                if (!coSoLieu) return null;
+
+                                return {
+                                    label: ct.HoTen,
+                                    data: khoaChiSo.map(function (khoa) {
+                                        var hang = bang.CacHang.find(function (h) { return h.Khoa === khoa; });
+                                        return hang && hang.GiaTriSo[i] != null ? hang.GiaTriSo[i] : 0;
+                                    }),
+                                    borderColor: PMBangMau(i),
+                                    backgroundColor: PMBangMau(i, .16),
+                                    pointBackgroundColor: PMBangMau(i),
+                                    borderWidth: 2
+                                };
+                            }).filter(Boolean)
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                r: {
+                                    min: 0, max: 99,
+                                    ticks: { stepSize: 20, backdropColor: 'transparent', color: PMMau('--chu-3') },
+                                    pointLabels: { font: { size: 12 } }
+                                }
+                            }
+                        }
+                    };
+                });
+            })();
+        </script>
+    }
+}

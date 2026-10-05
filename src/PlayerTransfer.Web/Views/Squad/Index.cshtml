@@ -1,0 +1,285 @@
+@model DoiHinhVm
+@{
+    ViewData["Title"] = "Đội hình ảo";
+    var viTris = SoDoChienThuat.DanhSach.ContainsKey(Model.SoDo)
+        ? SoDoChienThuat.DanhSach[Model.SoDo]
+        : SoDoChienThuat.DanhSach["4-3-3"];
+    var dangChon = Model.DangChon;
+}
+
+<h1>Xây dựng đội hình ảo</h1>
+<p class="mo" style="margin-top:-6px">
+    Chọn sơ đồ chiến thuật, bấm vào từng vị trí để gắn cầu thủ. Hệ thống tự tính tổng giá trị và chỉ số trung bình.
+</p>
+
+<div class="bo-cuc-loc">
+    <div>
+        <div class="khoi">
+            <form method="get" asp-controller="Squad" asp-action="Index">
+                <input type="hidden" name="id" value="@dangChon?.MaDoiHinh" />
+                <div class="truong">
+                    <label>Sơ đồ chiến thuật</label>
+                    <select class="o-nhap" name="soDo" onchange="this.form.submit()">
+                        @foreach (var sd in SoDoChienThuat.DanhSach.Keys)
+                        {
+                            <option value="@sd" selected="@(Model.SoDo == sd)">@sd</option>
+                        }
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <div class="khoi">
+            <div class="khoi-dau"><h3>Đội hình đã lưu</h3></div>
+            @if (Model.DanhSach.Any())
+            {
+                @foreach (var dh in Model.DanhSach)
+                {
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--vien)">
+                        <div>
+                            <a asp-controller="Squad" asp-action="Index" asp-route-id="@dh.MaDoiHinh">@dh.TenDoiHinh</a>
+                            <div class="dong-meta">@dh.SoDoChienThuat · @DinhDangSo.TrieuEuro(dh.TongGiaTri) · CS @dh.ChiSoTrungBinh</div>
+                        </div>
+                        <form asp-controller="Squad" asp-action="Xoa" method="post" data-xac-nhan="Xóa đội hình @dh.TenDoiHinh?">
+                            <input type="hidden" name="id" value="@dh.MaDoiHinh" />
+                            <button type="submit" class="nut nut-nho nut-do">Xóa</button>
+                        </form>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="dong-meta">Chưa có đội hình nào được lưu.</div>
+            }
+        </div>
+    </div>
+
+    <div class="khoi">
+        <form method="post" asp-controller="Squad" asp-action="Luu" id="bieuMauDoiHinh">
+            <input type="hidden" name="maDoiHinh" value="@dangChon?.MaDoiHinh" />
+            <input type="hidden" name="soDo" value="@Model.SoDo" />
+
+            <div class="khoi-dau">
+                <input class="o-nhap" name="tenDoiHinh" placeholder="Tên đội hình" required maxlength="60"
+                       aria-label="Tên đội hình" style="flex:1 1 220px" value="@(dangChon?.TenDoiHinh)" />
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span class="nhan">Tổng giá trị: <strong id="tongGiaTri">@DinhDangSo.TrieuEuro(dangChon?.TongGiaTri ?? 0)</strong></span>
+                    @if (dangChon != null)
+                    {
+                        <span class="nhan nhan-tot" title="Độ gắn kết đội hình">Gắn kết @dangChon.ChiSoGanKet%</span>
+                    }
+                    <a class="nut nut-nho" asp-controller="Squad" asp-action="SoSanh">So sánh đội hình</a>
+                    <button type="submit" class="nut nut-chinh">Lưu đội hình</button>
+                </div>
+            </div>
+
+            <div class="san">
+                <div class="vach-giua"></div>
+                @{
+                    // Chia 11 vị trí thành 4 hàng để hiển thị trên sân.
+                    var hangs = new List<string[]>();
+                    var conLai = viTris.ToList();
+                    hangs.Add(conLai.Take(1).ToArray());
+                    hangs.Add(conLai.Skip(1).Take(4).ToArray());
+                    hangs.Add(conLai.Skip(5).Take(3).ToArray());
+                    hangs.Add(conLai.Skip(8).ToArray());
+                    var chiSo = 0;
+                }
+                @foreach (var hang in Enumerable.Reverse(hangs))
+                {
+                    <div class="hang-san">
+                        @foreach (var vt in hang)
+                        {
+                            var thuTu = Array.IndexOf(viTris, vt);
+                            var daGan = dangChon?.ViTris?.FirstOrDefault(x => x.ViTriTrenSan == vt);
+                            <div>
+                                <input type="hidden" name="viTri" value="@vt" />
+                                <input type="hidden" name="maCauThu" id="ma_@vt" value="@(daGan?.CauThu?.MaCauThu ?? 0)" />
+                                <button type="button" class="o-san @(daGan?.CauThu != null ? "da-gan" : "")" draggable="true" data-o="@vt"
+                                        onclick="chonCauThu('@vt')" aria-label="Vị trí @vt">
+                                    <span class="vt-san">@vt</span>
+                                    <span class="ten-san" id="ten_@vt">@(daGan?.CauThu?.HoTen ?? "Trống")</span>
+                                </button>
+                            </div>
+                            chiSo++;
+                        }
+                    </div>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="hopChon" class="khoi hop-chon-cau-thu" style="display:none" role="dialog" aria-label="Chọn cầu thủ">
+    <div class="khoi-dau">
+        <h3>Chọn cầu thủ cho vị trí <span id="viTriDangChon"></span></h3>
+        <div style="display:flex;gap:6px">
+            <button type="button" class="nut nut-nho nut-nhe" id="nutBoTrong">Bỏ trống</button>
+            <button type="button" class="nut nut-nho" id="nutDongHopChon">Đóng</button>
+        </div>
+    </div>
+    <input class="o-nhap" id="oTimCauThu" placeholder="Nhập tên cầu thủ…" autocomplete="off" />
+    <div id="ketQuaChon" class="hop-chon-ket-qua"></div>
+</div>
+
+@section Scripts {
+    <script>
+        var viTriHienTai = null;
+
+        // B4 — kéo thả để đổi chỗ hai cầu thủ trên sân
+        (function () {
+            var dangKeo = null;
+
+            document.addEventListener('dragstart', function (e) {
+                var o = e.target.closest('.o-san');
+                if (!o) return;
+                dangKeo = o.getAttribute('data-o');
+                o.style.opacity = '.5';
+            });
+
+            document.addEventListener('dragend', function (e) {
+                var o = e.target.closest('.o-san');
+                if (o) o.style.opacity = '';
+                dangKeo = null;
+            });
+
+            document.addEventListener('dragover', function (e) {
+                if (e.target.closest('.o-san')) e.preventDefault();
+            });
+
+            document.addEventListener('drop', function (e) {
+                var dich = e.target.closest('.o-san');
+                if (!dich || !dangKeo) return;
+
+                e.preventDefault();
+                var oDich = dich.getAttribute('data-o');
+                if (oDich === dangKeo) return;
+
+                var maNguon = document.getElementById('ma_' + dangKeo);
+                var maDich = document.getElementById('ma_' + oDich);
+                var tenNguon = document.getElementById('ten_' + dangKeo);
+                var tenDich = document.getElementById('ten_' + oDich);
+
+                var tmpMa = maNguon.value; maNguon.value = maDich.value; maDich.value = tmpMa;
+                var tmpTen = tenNguon.textContent; tenNguon.textContent = tenDich.textContent; tenDich.textContent = tmpTen;
+
+                // "Trống" là chữ hiển thị, không phải tên: sau khi đổi chỗ phải đặt lại theo mã cầu thủ.
+                [[dangKeo, maNguon, tenNguon], [oDich, maDich, tenDich]].forEach(function (cap) {
+                    var coNguoi = parseInt(cap[1].value, 10) > 0;
+                    if (!coNguoi) cap[2].textContent = 'Trống';
+                    var nut = oCua(cap[0]);
+                    if (nut) nut.classList.toggle('da-gan', coNguoi);
+                });
+
+                if (window.PMToast) window.PMToast('Đã đổi chỗ hai vị trí.', 'ok');
+            });
+        })();
+
+        function oCua(vt) {
+            var ma = document.getElementById('ma_' + vt);
+            return ma ? ma.closest('div').querySelector('.o-san') : null;
+        }
+
+        function datO(vt, ma, ten) {
+            document.getElementById('ma_' + vt).value = ma;
+            document.getElementById('ten_' + vt).textContent = ma > 0 ? ten : 'Trống';
+            var o = oCua(vt);
+            if (o) o.classList.toggle('da-gan', ma > 0);
+        }
+
+        function dongHopChon() {
+            document.getElementById('hopChon').style.display = 'none';
+            document.getElementById('oTimCauThu').value = '';
+            document.getElementById('ketQuaChon').innerHTML = '';
+        }
+
+        function chonCauThu(vt) {
+            viTriHienTai = vt;
+            document.getElementById('viTriDangChon').textContent = vt;
+            document.getElementById('hopChon').style.display = 'block';
+            document.getElementById('oTimCauThu').focus();
+        }
+
+        document.getElementById('nutDongHopChon').addEventListener('click', dongHopChon);
+        document.getElementById('nutBoTrong').addEventListener('click', function () {
+            if (viTriHienTai) datO(viTriHienTai, 0, '');
+            dongHopChon();
+        });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') dongHopChon(); });
+
+        var henTim = null, lanTim = 0;
+        document.getElementById('oTimCauThu').addEventListener('input', function () {
+            var tuKhoa = this.value.trim();
+            var vung = document.getElementById('ketQuaChon');
+            clearTimeout(henTim);
+            if (tuKhoa.length < 2) { vung.innerHTML = ''; return; }
+
+            henTim = setTimeout(function () {
+                var lan = ++lanTim;
+                fetch('/Squad/TimCauThu?tuKhoa=' + encodeURIComponent(tuKhoa))
+                    .then(function (r) { return r.json(); })
+                    .then(function (ds) {
+                        if (lan !== lanTim) return;          // bỏ phản hồi cũ đến muộn
+                        vung.innerHTML = '';
+
+                        if (!ds || !ds.length) {
+                            var rong = document.createElement('p');
+                            rong.className = 'mo';
+                            rong.textContent = 'Không tìm thấy cầu thủ nào.';
+                            vung.appendChild(rong);
+                            return;
+                        }
+
+                        // Dựng bằng DOM + textContent: tên cầu thủ không bao giờ được chèn thẳng vào HTML.
+                        ds.forEach(function (x) {
+                            var dong = document.createElement('div');
+                            dong.className = 'hop-chon-dong';
+
+                            var trai = document.createElement('span');
+                            var ten = document.createElement('strong');
+                            ten.textContent = x.hoTen;
+                            var vt = document.createElement('span');
+                            vt.className = 'nhan';
+                            vt.textContent = x.viTriVietTat || '';
+                            var phu = document.createElement('div');
+                            phu.className = 'dong-meta';
+                            phu.textContent = (x.cauLacBo || '') + ' · ' + window.PMGia(x.giaTriHienTai);
+                            trai.appendChild(ten); trai.appendChild(document.createTextNode(' ')); trai.appendChild(vt); trai.appendChild(phu);
+
+                            var nut = document.createElement('button');
+                            nut.type = 'button';
+                            nut.className = 'nut nut-nho';
+                            nut.textContent = 'Chọn';
+                            nut.addEventListener('click', function () { ganCauThu(x.maCauThu, x.hoTen); });
+
+                            dong.appendChild(trai); dong.appendChild(nut);
+                            vung.appendChild(dong);
+                        });
+                    })
+                    .catch(function () { vung.textContent = 'Không tải được danh sách, vui lòng thử lại.'; });
+            }, 220);
+        });
+
+        function ganCauThu(ma, ten) {
+            if (!viTriHienTai) return;
+
+            // Một cầu thủ chỉ đứng được một vị trí: nếu đã xếp ở ô khác thì bỏ khỏi ô đó.
+            Array.prototype.forEach.call(document.querySelectorAll('input[name="maCauThu"]'), function (o) {
+                if (parseInt(o.value, 10) === ma && o.id !== 'ma_' + viTriHienTai) datO(o.id.slice(3), 0, '');
+            });
+
+            datO(viTriHienTai, ma, ten);
+            dongHopChon();
+
+            // A9 — xếp đủ 11 vị trí thì ăn mừng
+            var daGan = Array.prototype.filter.call(
+                document.querySelectorAll('input[name="maCauThu"]'),
+                function (x) { return parseInt(x.value, 10) > 0; }).length;
+
+            if (daGan === 11 && window.PMPhaoGiay) {
+                window.PMPhaoGiay(120);
+                if (window.PMToast) window.PMToast('Đội hình đã đủ 11 cầu thủ!', 'ok');
+            }
+        }
+    </script>
+}

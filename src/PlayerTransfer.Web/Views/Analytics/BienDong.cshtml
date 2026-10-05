@@ -1,0 +1,74 @@
+@model PlayerTransfer.Application.Dtos.TongHopBienDongDto
+@{
+    ViewData["Title"] = "Biến động giá";
+}
+
+<div style="margin:22px 0 18px">
+    <h1>Biến động giá trị</h1>
+    <p class="phu" style="margin:4px 0 0">
+        So mốc giá mới nhất với mốc gần nhất trước thời điểm cắt, để thấy thị trường
+        đang chuyển động ở đâu.
+    </p>
+</div>
+
+@if (ViewBag.Loi != null)
+{
+    <div class="bao bao-loi hien-dan"><span>!</span><span>@ViewBag.Loi</span></div>
+}
+
+<form method="get" class="khoi" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+    <div class="truong" style="flex:1;min-width:150px">
+        <label for="soNgay">Khoảng thời gian (ngày)</label>
+        <input class="o-nhap" type="number" min="1" max="365" id="soNgay" name="soNgay" value="@Model.SoNgay" />
+    </div>
+    <div class="truong" style="flex:1;min-width:150px">
+        <label for="soLuong">Số cầu thủ mỗi bảng</label>
+        <input class="o-nhap" type="number" min="1" max="50" id="soLuong" name="soLuong" value="10" />
+    </div>
+    <button type="submit" class="nut nut-chinh">Xem</button>
+</form>
+
+@if (Model.NeoTheoMocDuLieu)
+{
+    <div class="bao hien-dan" style="margin-top:14px">
+        <span>🕓</span>
+        <span>
+            Giá mới nhất trong hệ thống được ghi nhận ngày @Model.DenNgay.ToString("dd/MM/yyyy"), nên kỳ
+            được tính lùi từ ngày đó thay vì từ hôm nay.
+        </span>
+    </div>
+}
+
+@if (Model.SoCauThuCoBienDong == 0)
+{
+    <div class="khoi rong">
+        <div class="rong-bieu-tuong">📉</div>
+        <p class="mo">
+            Không có cầu thủ nào đổi giá trong khoảng này. Hãy thử nới khoảng thời gian (ví dụ 90 hoặc 180 ngày).
+        </p>
+    </div>
+}
+else
+{
+    <p class="mo" style="margin:14px 0">
+        @DinhDangSo.So(Model.SoCauThuCoBienDong) cầu thủ thay đổi giá
+        từ @Model.TuNgay.ToString("dd/MM/yyyy") đến @Model.DenNgay.ToString("dd/MM/yyyy").
+    </p>
+
+    <div class="luoi-hai-cot">
+        <div class="khoi hien-dan">
+            <div class="khoi-dau">
+                <h3>Tăng mạnh nhất</h3>
+                <span class="nhan nhan-tot">▲</span>
+            </div>
+            @await Html.PartialAsync("_BangBienDong", Model.TangManhNhat)
+        </div>
+        <div class="khoi hien-dan">
+            <div class="khoi-dau">
+                <h3>Giảm mạnh nhất</h3>
+                <span class="nhan nhan-canh-bao">▼</span>
+            </div>
+            @await Html.PartialAsync("_BangBienDong", Model.GiamManhNhat)
+        </div>
+    </div>
+}

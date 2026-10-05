@@ -1,0 +1,4 @@
+# Script chạy trong container Linux phải giữ xuống dòng kiểu LF, kể cả khi làm việc trên Windows.
+*.sh text eol=lf
+Dockerfile* text eol=lf
+*.sqlite binary
